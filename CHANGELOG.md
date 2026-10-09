@@ -3,6 +3,9 @@
 Milestones are listed with the commit that closes them. Git tags for each milestone are created locally
 as `vX.Y.Z-name`; if tags are missing on GitHub, create them with the commands at the bottom.
 
+## v0.9.1-polish — UI polish pass
+- Sticky header with nav indicator, consistent form controls and slider, table and panel depth, button states, mobile header, tower column fit. No feature changes.
+
 ## v0.9.0-demo — docs, demo script, polish
 - Architecture, data model, robotics extension, research notes, demo script. Favicon, humanised learning rationale.
 
@@ -35,6 +38,7 @@ Milestone commits (to tag on GitHub if the push route stays blocked):
 | v0.3.0-ui | 63f8562 |
 | v0.4.0-boards | ae0de29 |
 | v0.9.0-demo | 9028148 |
+| v0.9.1-polish | 887d22a |
 
 ```bash
 git push origin --tags
