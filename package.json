@@ -14,7 +14,8 @@
     "security": "node scripts/security-check.mjs http://localhost:3000",
     "sbom": "npm sbom --sbom-format cyclonedx --omit dev > docs/sbom.cdx.json",
     "bench": "tsx scripts/bench.ts",
-    "worldhash": "tsx scripts/worldhash.ts"
+    "worldhash": "tsx scripts/worldhash.ts",
+    "eval": "tsx scripts/eval.ts"
   },
   "dependencies": {
     "@fontsource-variable/space-grotesk": "^5.3.0",

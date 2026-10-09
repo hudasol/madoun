@@ -390,6 +390,13 @@ export interface Outcome {
   /** Risk signal keys that contributed to an intervention. */
   triggerKeys: string[];
   result: OutcomeResult;
+  /**
+   * How the shipment came to be checked. 'risk' means a lane rule selected it, so its outcome is a
+   * biased sample of all traffic. 'random-audit' is a hash-selected sample of green traffic and is the
+   * only unbiased estimate of the base rate. 'history-audit' is a green shipment audited because of the
+   * trader's past findings (also selected, so also biased). Absent means 'risk'.
+   */
+  sampling?: 'risk' | 'random-audit' | 'history-audit';
   /** Evidence types that were missing at first submission. */
   missingEvidence: EvidenceType[];
   recordedAt: ISODate;

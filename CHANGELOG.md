@@ -3,6 +3,9 @@
 Milestones are listed with the commit that closes them. Git tags for each milestone are created locally
 as `vX.Y.Z-name`; if tags are missing on GitHub, create them with the commands at the bottom.
 
+## v1.3.0-tii — review round 3 (applied AI research)
+- Post-clearance audits of flagged green shipments, interval-aware learning, model check (lanes, baselines, learned challenger, burden by group), simulator spread, model card, generated evaluation report. See docs/reviews/03-tii.md.
+
 ## v1.2.0-edge — review round 2 (defence and security systems)
 - Ed25519 receipt attestations (demo keys), linear-time replay and simulation, event validation, API limits, security headers and CSP, noble SHA-256, property and differential tests, threat model, SBOM, CI. See docs/reviews/02-edge.md.
 

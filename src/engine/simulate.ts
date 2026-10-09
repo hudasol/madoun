@@ -3,7 +3,9 @@ import { detectExceptions } from './exceptions';
 import { createInspectionTask, outcomeFromInspection, resultToReceiptDraft, simulateInspectionCell, type Truth } from './inspection';
 import { planShipment } from './plan';
 import { WorldBuilder, emptyWorld, replay } from './reducer';
+import { sha256Hex } from './hash';
 import { makeRng } from './rng';
+import { isRandomAudit } from './risk';
 import { addHours, ms, round1 } from './time';
 import type {
   EvidenceReceipt,
@@ -48,6 +50,9 @@ export interface SimOutput {
 
 /** Extra effort for lane-specific checks, the same in both modes (so it cannot flatter Madoun). */
 export const LANE_EXTRA_HOURS: Record<Lane, number> = { green: 0, amber: 2.5, red: 8 };
+
+/** Hours after release at which a post-clearance audit result is recorded. */
+export const AUDIT_DELAY_HOURS = 48;
 
 /** Illustrative validity (days) for reusable, product-level receipts. */
 const REUSABLE: Partial<Record<EvidenceType, number>> = {
@@ -213,10 +218,23 @@ export function simulate(input: SimInput): SimOutput {
     const clearedAtHours = madounHours;
     const clearedAt = addHours(filedAt, clearedAtHours);
     const missingAtFirst = t.missing;
+
+    // Post-clearance audit of flagged green shipments. It never delays release (it happens after), and it
+    // is the only way the learning loop ever sees what the green lane lets through. It uses its own random
+    // stream, so adding it leaves every other draw in the simulation exactly as it was.
+    let outcomeAt = clearedAt;
+    let sampling: 'risk' | 'random-audit' | 'history-audit' = 'risk';
+    if (lane === 'green' && plan.assessment.auditFlag) {
+      sampling = isRandomAudit(shipment.id) ? 'random-audit' : 'history-audit';
+      const auditRng = makeRng((input.seed ^ parseInt(sha256Hex('audit-rng:' + shipment.id).slice(0, 8), 16)) >>> 0);
+      const task = createInspectionTask(shipment, plan.assessment, clearedAt);
+      outcomeAt = addHours(clearedAt, AUDIT_DELAY_HOURS);
+      result = simulateInspectionCell(task, truthForInspection, auditRng, outcomeAt, { id: 'adc:audit', kind: 'officer' }, { detectionRate: 0.6, falsePositiveRate: 0.02 });
+    }
     push({
       type: 'OutcomeRecorded',
-      at: clearedAt,
-      outcome: outcomeFromInspection(shipment, plan.assessment, result, missingAtFirst, clearedAt),
+      at: outcomeAt,
+      outcome: outcomeFromInspection(shipment, plan.assessment, result, missingAtFirst, outcomeAt, sampling),
     });
     push({ type: 'ShipmentCleared', at: clearedAt, shipmentId: shipment.id, preArrival: clearedAtHours <= lead });
 

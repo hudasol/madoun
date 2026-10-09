@@ -120,6 +120,7 @@ export function outcomeFromInspection(
   result: InspectionResult | undefined,
   missingEvidence: Outcome['missingEvidence'],
   now: string,
+  sampling: Outcome['sampling'] = 'risk',
 ): Outcome {
   const confirmed = !!result && result.findings.some((f) => f.kind !== 'none' && f.severity !== 'info');
   return {
@@ -129,6 +130,7 @@ export function outcomeFromInspection(
     forwarderId: shipment.forwarderId,
     triggerKeys: assessment.perAuthority.flatMap((a) => a.signals.filter((s) => s.points > 0 && s.factor !== 'documentation-completeness').map((s) => s.key)),
     result: !result ? 'not-inspected' : confirmed ? 'confirmed' : 'false-alarm',
+    ...(sampling === 'risk' ? {} : { sampling }),
     missingEvidence,
     recordedAt: now,
   };
