@@ -26,6 +26,16 @@ as `vX.Y.Z-name`; if tags are missing on GitHub, create them with the commands a
 ## Tags and GitHub topics
 Tags exist locally; the sandbox could not push tags or edit repo topics. Run from a clone with push access:
 
+Milestone commits (to tag on GitHub if the push route stays blocked):
+
+| Tag | Commit |
+|---|---|
+| v0.0.1-plan | 7a357ea |
+| v0.2.0-engine | da48249 |
+| v0.3.0-ui | 63f8562 |
+| v0.4.0-boards | ae0de29 |
+| v0.9.0-demo | 9028148 |
+
 ```bash
 git push origin --tags
 gh repo edit hudasol/madoun --add-topic customs,trade-facilitation,govtech,logistics,uae,abu-dhabi,ai,risk-management,single-window,robotics,arabic,nextjs,typescript
