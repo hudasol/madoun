@@ -5,6 +5,8 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useFormat, useLocale, useT } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
+import { parseViewAs } from '@/lib/roles';
+import { useLabels } from '@/components/boards/labels';
 
 const T = {
   en: {
@@ -12,14 +14,14 @@ const T = {
     inspection: 'Inspection', simulator: 'Today vs Madoun', method: 'Method',
     banner: 'Sample data: every shipment is synthetic and every rule is illustrative.',
     viewing: 'Viewing', now: 'Latest', scrub: 'Move through time', theme: 'Switch theme', lang: 'العربية', reset: 'Reset demo changes',
-    skip: 'Skip to content', changes: '{n} demo change(s)',
+    skip: 'Skip to content', changes: '{n} demo change(s)', viewAs: 'Viewing as', roleHelp: 'Demo only: shows what each role could do and see. Real access control belongs on the server.',
   },
   ar: {
     tower: 'برج المراقبة', shipments: 'الشحنات', exceptions: 'الاستثناءات', evidence: 'الأدلة', learning: 'التعلّم',
     inspection: 'الفحص', simulator: 'اليوم مقابل مدوّن', method: 'المنهجية',
     banner: 'بيانات تجريبية: كل الشحنات اصطناعية وكل القواعد توضيحية.',
     viewing: 'العرض عند', now: 'الأحدث', scrub: 'التنقل عبر الزمن', theme: 'تبديل المظهر', lang: 'English', reset: 'إعادة ضبط تغييرات العرض',
-    skip: 'انتقل إلى المحتوى', changes: '{n} تغيير(ات) تجريبية',
+    skip: 'انتقل إلى المحتوى', changes: '{n} تغيير(ات) تجريبية', viewAs: 'العرض بصفة', roleHelp: 'للعرض التوضيحي فقط: يبيّن ما يمكن لكل دور فعله ورؤيته. التحكم الفعلي بالصلاحيات مكانه الخادم.',
   },
 };
 
@@ -40,6 +42,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const { locale, setLocale } = useLocale();
   const path = usePathname();
   const s = useStore();
+  const L = useLabels();
   const [theme, setTheme] = useState<'auto' | 'dark' | 'light'>('auto');
 
   useEffect(() => {
@@ -74,7 +77,7 @@ export function Shell({ children }: { children: ReactNode }) {
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-panel focus:p-3">{t('skip')}</a>
       <header className="site-header">
         <div className="mx-auto flex max-w-[1280px] flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2.5">
-          <Link href="/" className="inline-flex items-baseline gap-2" aria-label="Madoun">
+          <Link href="/" className="inline-flex items-baseline gap-2">
             <span className="stamp !py-1 !px-2.5 text-[1.05rem] tracking-tight">Madoun<small className="!text-[0.7rem]">مدوّن</small></span>
           </Link>
           <nav aria-label="Main" className="nav-scroll order-3 -mx-4 w-[calc(100%+2rem)] overflow-x-auto px-4 md:order-none md:mx-0 md:w-auto md:flex-1 md:px-0">
@@ -121,6 +124,18 @@ export function Shell({ children }: { children: ReactNode }) {
                 style={{ ["--p" as string]: `${(Math.min(steps, Math.max(0, idx)) / steps) * 100}%` }}
               />
               <button type="button" className="btn !py-1" onClick={() => s.setAt(s.endAt)} disabled={s.at === s.endAt}>{t('now')}</button>
+              <label htmlFor="viewas" className="ms-auto text-muted">{t('viewAs')}</label>
+              <select
+                id="viewas"
+                className="!py-1 text-sm"
+                value={s.viewAs}
+                title={t('roleHelp')}
+                onChange={(e) => s.setViewAs(parseViewAs(e.target.value))}
+              >
+                {['customs', ...(s.directory ? Object.values(s.directory.authorities).filter((a) => a.role === 'regulator').map((a) => `reg:${a.id}`) : []), 'auditor', 'operator'].map((v) => (
+                  <option key={v} value={v}>{L.role(v)}</option>
+                ))}
+              </select>
               {s.overlayCount > 0 && (
                 <button type="button" className="btn !py-1" onClick={s.resetDemo} title={t('reset')}>{t('changes', { n: s.overlayCount })}</button>
               )}

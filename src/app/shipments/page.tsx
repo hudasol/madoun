@@ -70,7 +70,7 @@ export default function Page() {
       if (onlyExc && !excCount[sh.id]) return false;
       if (needle) {
         const tr = s.directory!.traders[sh.traderId];
-        const hay = [sh.declarationRef, sh.id, tr?.name, tr?.nameAr, ...allItems(sh).flatMap((i) => [i.description, i.hsCode])].join(' ').toLowerCase();
+        const hay = [sh.declarationRef, sh.id, tr?.name, tr?.nameAr, ...allItems(sh).flatMap((i) => [i.description, i.descriptionAr, i.hsCode])].join(' ').toLowerCase();
         if (!hay.includes(needle)) return false;
       }
       return true;
@@ -163,7 +163,7 @@ export default function Page() {
                     </td>
                     <td>{tr ? bi(tr.name, tr.nameAr) : sh.traderId}</td>
                     <td className="max-w-[16rem]">
-                      <span className="block truncate">{items[0]?.description}</span>
+                      <span className="block truncate">{items[0] && bi(items[0].description, items[0].descriptionAr)}</span>
                       {items.length > 1 && <span className="text-sm text-muted">{t('more', { n: items.length - 1 })}</span>}
                     </td>
                     <td>{L.mode(sh.mode)}<span className="block text-sm text-muted">{L.entry(sh.entryPoint)}</span></td>

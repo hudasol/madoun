@@ -180,7 +180,7 @@ export function simulate(input: SimInput): SimOutput {
             type,
             subjectRef: `${type}:${shipment.id}`,
             summary: `${dir.requirementById[r.requirementId].label} verified for ${items.map((i) => i.description).join(', ')}`,
-            summaryAr: `تم التحقق: ${dir.requirementById[r.requirementId].labelAr}`,
+            summaryAr: `تم التحقق من ${dir.requirementById[r.requirementId].labelAr} للبضائع: ${items.map((i) => i.descriptionAr ?? i.description).join('، ')}`,
             issuer: `${shipment.traderId} supplier`,
             verifiedBy: r.authorityId,
             method: 'document-check',

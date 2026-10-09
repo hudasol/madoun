@@ -2,6 +2,7 @@
 
 import { useCallback } from 'react';
 import type { EvidenceMethod, EvidenceType, ExceptionKind } from '@/engine';
+import { actorName, inlineActors } from '@/lib/actors';
 import { useBi, useLocale } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 
@@ -146,6 +147,14 @@ export function useLabels() {
     [s.directory, bi],
   );
 
+  const forwarder = useCallback(
+    (id: string | undefined) => {
+      const fw = id ? s.directory?.forwarders[id] : undefined;
+      return fw ? bi(fw.name, fw.nameAr) : id ?? '';
+    },
+    [s.directory, bi],
+  );
+
   const trader = useCallback(
     (id: string | undefined) => {
       const tr = id ? s.directory?.traders[id] : undefined;
@@ -154,22 +163,22 @@ export function useLabels() {
     [s.directory, bi],
   );
 
-  /** 'adafsa:duty' -> "Food Safety Authority, duty officer"; 'adc:officer-3' -> "Abu Dhabi Customs, officer 3". */
-  const owner = useCallback(
-    (id: string) => {
-      const [aid, role = ''] = id.split(':');
-      const au = authority(aid);
-      const ar = locale === 'ar';
-      if (role === 'duty') return `${au}${ar ? '، ضابط المناوبة' : ', duty officer'}`;
-      if (role === 'officer-you') return ar ? 'أنت' : 'You';
-      const m = role.match(/^officer-(\d+)$/);
-      if (m) return `${au}${ar ? `، الضابط ${m[1]}` : `, officer ${m[1]}`}`;
-      return id;
+  /** 'adafsa:duty' -> "Food Safety Authority duty officer"; see src/lib/actors.ts for every id shape. */
+  const owner = useCallback((id: string) => actorName(id, locale, s.directory ?? undefined), [s.directory, locale]);
+  const actorsIn = useCallback((text: string) => inlineActors(text, locale, s.directory ?? undefined), [s.directory, locale]);
+
+  const role = useCallback(
+    (v: string) => {
+      if (v === 'customs') return locale === 'ar' ? 'ضابط جمارك' : 'Customs officer';
+      if (v === 'auditor') return locale === 'ar' ? 'مدقق (قراءة فقط)' : 'Auditor (read only)';
+      if (v === 'operator') return locale === 'ar' ? 'مستورد أو وكيل (قراءة فقط)' : 'Trader or agent (read only)';
+      if (v.startsWith('reg:')) return locale === 'ar' ? `ضابط، ${authority(v.slice(4))}` : `${authority(v.slice(4))} officer`;
+      return v;
     },
-    [authority, locale],
+    [locale, authority],
   );
 
-  return { evidenceType, method, kind, finding, severity, performer, constraint, signal, authority, trader, owner };
+  return { evidenceType, method, kind, finding, severity, performer, constraint, signal, authority, trader, forwarder, owner, actorsIn, role };
 }
 
 export const KIND_ORDER: ExceptionKind[] = ['idle-review', 'missing-evidence', 'evidence-expiring', 'authority-conflict', 'unowned-handoff'];

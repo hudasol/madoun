@@ -2,9 +2,10 @@
 
 import { LaneBadge } from '@/components/LaneBadge';
 import { addHours, hoursBetween, type ShipmentFile, type ShipmentPlan } from '@/engine';
-import { useBi, useFormat, useT } from '@/lib/i18n';
+import { useBi, useFormat, useLocale, useT } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useLabels } from './labels';
+import { ExportBar } from './ExportBar';
 
 const T = {
   en: {
@@ -31,6 +32,7 @@ export function ShipmentHeader({ file, plan, gapCount }: { file: ShipmentFile; p
   const t = useT(T);
   const f = useFormat();
   const bi = useBi();
+  const { locale } = useLocale();
   const s = useStore();
   const L = useLabels();
   const sh = file.shipment;
@@ -55,8 +57,8 @@ export function ShipmentHeader({ file, plan, gapCount }: { file: ShipmentFile; p
       <dl className="mt-4 grid grid-cols-1 gap-x-8 gap-y-3 border-y border-line py-4 sm:grid-cols-2 lg:grid-cols-4">
         {([
           ['trader', tr ? bi(tr.name, tr.nameAr) : sh.traderId],
-          ['mode', `${L.mode(sh.mode)}, ${sh.carrier}`],
-          ['conveyance', <span key="c" className="mono">{sh.conveyance}</span>],
+          ['mode', `${L.mode(sh.mode)}${locale === 'ar' ? '، ' : ', '}${bi(sh.carrier, sh.carrierAr)}`],
+          ['conveyance', <span key="c" className="mono">{bi(sh.conveyance, sh.conveyanceAr)}</span>],
           ['entry', L.entry(sh.entryPoint)],
           ['filed', f.dateTime(sh.filedAt)],
           ['eta', f.dateTime(sh.eta)],
@@ -68,6 +70,8 @@ export function ShipmentHeader({ file, plan, gapCount }: { file: ShipmentFile; p
           <dd className="mono flex flex-wrap gap-x-4 text-[0.92rem]">{containers.length ? containers.map((c) => <span key={c}>{c}</span>) : docs.map((c) => <span key={c}>{c}</span>)}</dd>
         </div>
       </dl>
+
+      <ExportBar file={file} plan={plan} />
 
       <div className="mt-4 max-w-[70ch]" aria-label={t('canClear')}>
         <h2 className="text-base">{t('canClear')}</h2>

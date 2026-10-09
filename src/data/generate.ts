@@ -56,42 +56,43 @@ const TRADER_NAMES: [string, string][] = [
 ];
 
 const FORWARDERS: Forwarder[] = [
-  { id: 'fw-harbour', name: 'Harbour Gate Logistics' },
-  { id: 'fw-desert', name: 'Desert Line Freight' },
-  { id: 'fw-pearl', name: 'Pearl Cargo Services' },
-  { id: 'fw-falcon', name: 'Falcon Bridge Shipping' },
-  { id: 'fw-oasis', name: 'Oasis Forwarding' },
+  { id: 'fw-harbour', name: 'Harbour Gate Logistics', nameAr: 'بوابة الميناء للخدمات اللوجستية' },
+  { id: 'fw-desert', name: 'Desert Line Freight', nameAr: 'خط الصحراء للشحن' },
+  { id: 'fw-pearl', name: 'Pearl Cargo Services', nameAr: 'اللؤلؤة لخدمات الشحن' },
+  { id: 'fw-falcon', name: 'Falcon Bridge Shipping', nameAr: 'جسر الصقر للشحن' },
+  { id: 'fw-oasis', name: 'Oasis Forwarding', nameAr: 'الواحة للتخليص والشحن' },
 ];
 
 interface CatalogEntry {
   category: GoodsCategory;
   hs: string;
   description: string;
+  descriptionAr: string;
   flags: string[];
   origins: string[];
   unitFactor: number; // multiplier vs reference unit value
 }
 
 const CATALOG: CatalogEntry[] = [
-  { category: 'food', hs: '02071400', description: 'Frozen poultry cuts', flags: ['high-risk-food', 'perishable'], origins: ['BR', 'FR', 'TR'], unitFactor: 1 },
-  { category: 'food', hs: '04021000', description: 'Milk powder', flags: ['high-risk-food'], origins: ['NZ', 'DE', 'FR'], unitFactor: 1 },
-  { category: 'food', hs: '10063000', description: 'Milled rice', flags: [], origins: ['IN', 'PK', 'TH'], unitFactor: 1 },
-  { category: 'food', hs: '09109100', description: 'Mixed spices', flags: [], origins: ['IN', 'ID', 'VN'], unitFactor: 1 },
-  { category: 'electronics', hs: '84713000', description: 'Laptop computers', flags: [], origins: ['CN', 'VN', 'KR'], unitFactor: 1 },
-  { category: 'electronics', hs: '85044000', description: 'Power adapters', flags: [], origins: ['CN', 'VN'], unitFactor: 1 },
-  { category: 'wireless', hs: '85176200', description: 'Wireless routers', flags: [], origins: ['CN', 'KR', 'TW'], unitFactor: 1 },
-  { category: 'pharma', hs: '30049000', description: 'Packaged medicaments', flags: ['cold-chain'], origins: ['DE', 'IN', 'CH'], unitFactor: 1 },
-  { category: 'pharma', hs: '30043200', description: 'Hormonal medicaments', flags: ['controlled', 'cold-chain'], origins: ['DE', 'CH'], unitFactor: 1 },
-  { category: 'medical-device', hs: '90183100', description: 'Disposable syringes', flags: [], origins: ['CN', 'DE', 'MY'], unitFactor: 1 },
-  { category: 'chemicals', hs: '28151100', description: 'Sodium hydroxide', flags: ['hazardous'], origins: ['CN', 'IN', 'DE'], unitFactor: 1 },
-  { category: 'chemicals', hs: '32081000', description: 'Industrial paint', flags: [], origins: ['IT', 'TR', 'CN'], unitFactor: 1 },
-  { category: 'textiles', hs: '61091000', description: 'Cotton T-shirts', flags: [], origins: ['BD', 'IN', 'TR'], unitFactor: 1 },
-  { category: 'textiles', hs: '62046200', description: 'Women trousers', flags: [], origins: ['CN', 'VN', 'TR'], unitFactor: 1 },
-  { category: 'machinery', hs: '84137000', description: 'Centrifugal pumps', flags: [], origins: ['DE', 'IT', 'CN'], unitFactor: 1 },
-  { category: 'machinery', hs: '84295200', description: 'Excavator parts', flags: [], origins: ['JP', 'DE', 'KR'], unitFactor: 1 },
-  { category: 'cosmetics', hs: '33049900', description: 'Skin-care creams', flags: [], origins: ['FR', 'KR', 'US'], unitFactor: 1 },
-  { category: 'general', hs: '39269000', description: 'Plastic household articles', flags: [], origins: ['CN', 'TH', 'ID'], unitFactor: 1 },
-  { category: 'general', hs: '94036000', description: 'Wooden furniture', flags: [], origins: ['MY', 'ID', 'IT'], unitFactor: 1 },
+  { category: 'food', hs: '02071400', description: 'Frozen poultry cuts', descriptionAr: 'قطع دواجن مجمدة', flags: ['high-risk-food', 'perishable'], origins: ['BR', 'FR', 'TR'], unitFactor: 1 },
+  { category: 'food', hs: '04021000', description: 'Milk powder', descriptionAr: 'حليب مجفف', flags: ['high-risk-food'], origins: ['NZ', 'DE', 'FR'], unitFactor: 1 },
+  { category: 'food', hs: '10063000', description: 'Milled rice', descriptionAr: 'أرز مبيّض', flags: [], origins: ['IN', 'PK', 'TH'], unitFactor: 1 },
+  { category: 'food', hs: '09109100', description: 'Mixed spices', descriptionAr: 'توابل مشكّلة', flags: [], origins: ['IN', 'ID', 'VN'], unitFactor: 1 },
+  { category: 'electronics', hs: '84713000', description: 'Laptop computers', descriptionAr: 'حواسيب محمولة', flags: [], origins: ['CN', 'VN', 'KR'], unitFactor: 1 },
+  { category: 'electronics', hs: '85044000', description: 'Power adapters', descriptionAr: 'محوّلات كهربائية', flags: [], origins: ['CN', 'VN'], unitFactor: 1 },
+  { category: 'wireless', hs: '85176200', description: 'Wireless routers', descriptionAr: 'أجهزة توجيه لاسلكية', flags: [], origins: ['CN', 'KR', 'TW'], unitFactor: 1 },
+  { category: 'pharma', hs: '30049000', description: 'Packaged medicaments', descriptionAr: 'أدوية معبأة', flags: ['cold-chain'], origins: ['DE', 'IN', 'CH'], unitFactor: 1 },
+  { category: 'pharma', hs: '30043200', description: 'Hormonal medicaments', descriptionAr: 'أدوية هرمونية', flags: ['controlled', 'cold-chain'], origins: ['DE', 'CH'], unitFactor: 1 },
+  { category: 'medical-device', hs: '90183100', description: 'Disposable syringes', descriptionAr: 'محاقن للاستعمال مرة واحدة', flags: [], origins: ['CN', 'DE', 'MY'], unitFactor: 1 },
+  { category: 'chemicals', hs: '28151100', description: 'Sodium hydroxide', descriptionAr: 'هيدروكسيد الصوديوم', flags: ['hazardous'], origins: ['CN', 'IN', 'DE'], unitFactor: 1 },
+  { category: 'chemicals', hs: '32081000', description: 'Industrial paint', descriptionAr: 'دهانات صناعية', flags: [], origins: ['IT', 'TR', 'CN'], unitFactor: 1 },
+  { category: 'textiles', hs: '61091000', description: 'Cotton T-shirts', descriptionAr: 'قمصان قطنية', flags: [], origins: ['BD', 'IN', 'TR'], unitFactor: 1 },
+  { category: 'textiles', hs: '62046200', description: 'Women trousers', descriptionAr: 'سراويل نسائية', flags: [], origins: ['CN', 'VN', 'TR'], unitFactor: 1 },
+  { category: 'machinery', hs: '84137000', description: 'Centrifugal pumps', descriptionAr: 'مضخات طاردة مركزية', flags: [], origins: ['DE', 'IT', 'CN'], unitFactor: 1 },
+  { category: 'machinery', hs: '84295200', description: 'Excavator parts', descriptionAr: 'قطع غيار الحفّارات', flags: [], origins: ['JP', 'DE', 'KR'], unitFactor: 1 },
+  { category: 'cosmetics', hs: '33049900', description: 'Skin-care creams', descriptionAr: 'كريمات العناية بالبشرة', flags: [], origins: ['FR', 'KR', 'US'], unitFactor: 1 },
+  { category: 'general', hs: '39269000', description: 'Plastic household articles', descriptionAr: 'أدوات منزلية بلاستيكية', flags: [], origins: ['CN', 'TH', 'ID'], unitFactor: 1 },
+  { category: 'general', hs: '94036000', description: 'Wooden furniture', descriptionAr: 'أثاث خشبي', flags: [], origins: ['MY', 'ID', 'IT'], unitFactor: 1 },
 ];
 
 
@@ -109,6 +110,18 @@ function containerId(rng: Rng): string {
   const letters = Array.from({ length: 4 }, () => String.fromCharCode(65 + rng.int(0, 25))).join('');
   return `${letters}${String(rng.int(0, 9999999)).padStart(7, '0')}`;
 }
+
+/** Arabic names for carriers and vessels (invented companies, so these are transliterations or descriptive names). */
+const CARRIER_AR: Record<string, string> = {
+  'Gulf Line': 'خط الخليج',
+  'Blue Meridian': 'الزوال الأزرق',
+  'Eastern Arc': 'القوس الشرقي',
+  'Skyroute Cargo': 'سكاي روت للشحن',
+  'Meridian Air': 'ميريديان للطيران',
+  'Dune Haulage': 'الكثبان لنقل البضائع',
+  'Route 11 Transport': 'الطريق 11 للنقل',
+};
+const VESSEL_AR: Record<string, string> = { Aurora: 'أورورا', Sandpiper: 'ساندبايبر', Horizon: 'هورايزن', Tidewater: 'تايدووتر' };
 
 const MODE_SPECS: Record<TransportMode, { entry: string[]; carrier: string[]; lead: [number, number] }> = {
   sea: { entry: ['Khalifa Port', 'Zayed Port'], carrier: ['Gulf Line', 'Blue Meridian', 'Eastern Arc'], lead: [48, 120] },
@@ -186,6 +199,7 @@ export function generate(opts: GenerateOptions = {}): Generated {
         id: `${id}-I${k + 1}`,
         hsCode: entry.hs,
         description: entry.description,
+        descriptionAr: entry.descriptionAr,
         category: entry.category,
         origin,
         value: Math.round(quantity * ref * factor),
@@ -197,13 +211,28 @@ export function generate(opts: GenerateOptions = {}): Generated {
 
     const containerCount = mode === 'sea' ? rng.int(1, 2) : 0;
     const forwarder = rng.pick(FORWARDERS);
+    const carrier = rng.pick(spec.carrier);
+    // Same draw order as before (carrier, conveyance, entry point) so seeded output is unchanged.
+    let conveyance: string;
+    let conveyanceAr: string | undefined;
+    if (mode === 'sea') {
+      const vessel = rng.pick(['Aurora', 'Sandpiper', 'Horizon', 'Tidewater'] as const);
+      const voyage = rng.int(100, 999);
+      conveyance = `MV ${vessel} ${voyage}`;
+      conveyanceAr = `السفينة ${VESSEL_AR[vessel]} ${voyage}`;
+    } else {
+      conveyance = mode === 'air' ? `FL${rng.int(100, 999)}` : `TRK-${rng.int(1000, 9999)}`;
+    }
+    const entryPoint = rng.pick(spec.entry);
     const shipment: Shipment = {
       id,
       declarationRef: `DEC-26-${String(100000 + n * 37)}`,
       mode,
-      carrier: rng.pick(spec.carrier),
-      conveyance: mode === 'sea' ? `MV ${rng.pick(['Aurora', 'Sandpiper', 'Horizon', 'Tidewater'])} ${rng.int(100, 999)}` : mode === 'air' ? `FL${rng.int(100, 999)}` : `TRK-${rng.int(1000, 9999)}`,
-      entryPoint: rng.pick(spec.entry),
+      carrier,
+      carrierAr: CARRIER_AR[carrier],
+      conveyance,
+      conveyanceAr,
+      entryPoint,
       eta,
       filedAt,
       traderId: trader.id,

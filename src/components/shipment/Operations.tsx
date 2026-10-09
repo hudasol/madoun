@@ -1,8 +1,9 @@
 'use client';
 
+import { RoleHint } from '@/components/RoleHint';
 import { useState } from 'react';
 import type { InspectionFinding, ShipmentFile, ShipmentPlan } from '@/engine';
-import { useBi, useFormat, useT } from '@/lib/i18n';
+import { useBi, useFormat, useLocale, useT } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useLabels } from './labels';
 
@@ -79,8 +80,9 @@ export function ExceptionsSection({ file }: { file: ShipmentFile }) {
                     <input id={`n-${e.id}`} value={notes[e.id] ?? ''} aria-invalid={bad === e.id} onChange={(ev) => setNotes((m) => ({ ...m, [e.id]: ev.target.value }))}
                       className="rounded-[3px] border border-line bg-panel px-3 py-1.5 text-base text-ink" />
                   </label>
-                  <button type="submit" className="btn">{t('resolve')}</button>
+                  <button type="submit" className="btn" disabled={!s.can('resolve-exception', e.authorityId)}>{t('resolve')}</button>
                 </form>
+                <RoleHint action="resolve-exception" authorityId={e.authorityId} className="mt-1" />
               </li>
             ))}
           </ul>
@@ -98,6 +100,8 @@ export function InspectionSection({ file }: { file: ShipmentFile }) {
   const t = useT(T);
   const f = useFormat();
   const s = useStore();
+  const bi = useBi();
+  const { locale } = useLocale();
   const L = useLabels();
   const [msg, setMsg] = useState('');
   const task = file.inspectionTask;
@@ -111,14 +115,17 @@ export function InspectionSection({ file }: { file: ShipmentFile }) {
         <p className="max-w-[70ch] text-[0.95rem]">{t('why')}</p>
         <p role="status" aria-live="polite" className={msg ? 'border-s-2 border-ink ps-3 font-medium' : 'sr-only'}>{msg}</p>
         {!task && !res && (
-          <button type="button" className="btn btn-primary" onClick={() => { s.runInspection(file.shipment.id); setMsg(t('requested')); }}>{t('request')}</button>
+          <div>
+            <button type="button" className="btn btn-primary" disabled={!s.can('run-inspection')} onClick={() => { s.runInspection(file.shipment.id); setMsg(t('requested')); }}>{t('request')}</button>
+            <RoleHint action="run-inspection" className="mt-1" />
+          </div>
         )}
         {task && (
           <dl className="grid gap-x-8 gap-y-2 sm:grid-cols-2">
             <div><dt className="text-sm text-muted">{t('task')}</dt><dd className="mono text-[0.92rem]">{task.id}</dd><dd className="text-sm text-muted">{t('by', { w: L.owner(task.requestedBy) })}, {f.dateTime(task.requestedAt)}</dd></div>
             <div><dt className="text-sm text-muted">{t('priority')}</dt><dd>{task.priority === 'high' ? t('high') : t('normal')}</dd></div>
             {task.containerIds.length > 0 && <div><dt className="text-sm text-muted">{t('containers')}</dt><dd className="mono text-[0.92rem]">{task.containerIds.join(', ')}</dd></div>}
-            <div><dt className="text-sm text-muted">{t('scope')}</dt><dd className="text-[0.95rem]">{task.scope.join('; ')}</dd></div>
+            <div><dt className="text-sm text-muted">{t('scope')}</dt><dd className="text-[0.95rem]">{(locale === 'ar' && task.scopeAr ? task.scopeAr : task.scope).join(locale === 'ar' ? '؛ ' : '; ')}</dd></div>
           </dl>
         )}
         {task && !res && <p className="font-medium">{t('pending')}</p>}
@@ -126,14 +133,14 @@ export function InspectionSection({ file }: { file: ShipmentFile }) {
           <div className="border-t border-line pt-4">
             <h3 className="text-base">{t('result')}</h3>
             <dl className="mt-2 grid gap-x-8 gap-y-2 sm:grid-cols-3">
-              <div><dt className="text-sm text-muted">{t('performer')}</dt><dd>{t(res.performerKind)} <span className="mono text-[0.88rem]">{res.performedBy}</span></dd></div>
+              <div><dt className="text-sm text-muted">{t('performer')}</dt><dd>{t(res.performerKind)} <span className="text-[0.88rem]">{L.owner(res.performedBy)}</span></dd></div>
               <div><dt className="text-sm text-muted">{t('completed')}</dt><dd>{f.dateTime(res.completedAt)}</dd></div>
               <div><dt className="text-sm text-muted">{t('seal')}</dt><dd><span className="mono text-[0.88rem]">{res.seal.id}</span>, <span className={res.seal.intact ? '' : 'font-semibold'}>{res.seal.intact ? t('intact') : t('broken')}</span></dd></div>
             </dl>
             <h4 className="mt-3 text-sm text-muted">{t('findings')}</h4>
             <ul className="mt-1 space-y-1">
               {res.findings.map((x, i) => (
-                <li key={i} className="text-[0.95rem]"><span className="font-medium">{t(x.kind)}</span>{!noneFound(x) && <span className="text-muted"> ({t(x.severity)})</span>}{x.note && <span className="block text-muted">{x.note}</span>}</li>
+                <li key={i} className="text-[0.95rem]"><span className="font-medium">{t(x.kind)}</span>{!noneFound(x) && <span className="text-muted"> ({t(x.severity)})</span>}{x.note && <span className="block text-muted">{bi(x.note, x.noteAr)}</span>}</li>
               ))}
             </ul>
             {res.mediaRefs.length > 0 && (

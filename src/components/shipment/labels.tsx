@@ -2,7 +2,8 @@
 
 import { useCallback } from 'react';
 import type { ExceptionKind, ShipmentFile, TransportMode } from '@/engine';
-import { useBi, useT } from '@/lib/i18n';
+import { actorName, inlineActors } from '@/lib/actors';
+import { useBi, useLocale, useT } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 
 const T = {
@@ -33,6 +34,7 @@ export function statusOf(file: ShipmentFile): StatusKey {
 /** Small shared label helpers: mode, entry point, exception kind, owner, authority and status names. */
 export function useLabels() {
   const t = useT(T);
+  const { locale } = useLocale();
   const bi = useBi();
   const s = useStore();
   const dir = s.directory;
@@ -46,13 +48,8 @@ export function useLabels() {
     const a = dir?.authorities[id];
     return a ? bi(a.name, a.nameAr) : id;
   }, [dir, bi]);
-  const owner = useCallback((id: string) => {
-    if (id === 'adc:officer-you') return t('you');
-    if (id === 'system' || id === 'madoun') return t('system');
-    const [auth, role] = id.split(':');
-    if (role === 'duty' && dir?.authorities[auth]) return t('dutyOfficer', { name: authority(auth) });
-    return id;
-  }, [dir, t, authority]);
+  const owner = useCallback((id: string) => actorName(id, locale, dir), [dir, locale]);
+  const actorsIn = useCallback((text: string) => inlineActors(text, locale, dir), [dir, locale]);
   const status = useCallback((f: ShipmentFile) => t(statusOf(f)), [t]);
-  return { mode, entry, kind, authority, owner, status };
+  return { mode, entry, kind, authority, owner, actorsIn, status };
 }

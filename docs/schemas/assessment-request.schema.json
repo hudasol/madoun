@@ -1,0 +1,225 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://madoun.example/schemas/assessment-request.schema.json",
+  "title": "AssessmentRequest",
+  "type": "object",
+  "description": "A declaration as an ATLP/MAMAR adapter would map it. No internal ids: Madoun generates them. Unknown fields are rejected. Also published as docs/schemas/assessment-request.schema.json.\n",
+  "additionalProperties": false,
+  "required": [
+    "declarationRef",
+    "mode",
+    "carrier",
+    "conveyance",
+    "entryPoint",
+    "eta",
+    "traderId",
+    "forwarderId",
+    "invoiceRef",
+    "incoterm",
+    "currency",
+    "totalValue",
+    "submitted",
+    "consignments"
+  ],
+  "properties": {
+    "declarationRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "sea",
+        "air",
+        "land"
+      ]
+    },
+    "carrier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "carrierAr": {
+      "type": "string",
+      "maxLength": 300
+    },
+    "conveyance": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "conveyanceAr": {
+      "type": "string",
+      "maxLength": 300
+    },
+    "entryPoint": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "eta": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Must not be earlier than filedAt."
+    },
+    "filedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Defaults to the dataset snapshot time."
+    },
+    "traderId": {
+      "type": "string",
+      "description": "Must be a trader known to Madoun."
+    },
+    "forwarderId": {
+      "type": "string",
+      "description": "Must be a forwarder known to Madoun."
+    },
+    "invoiceRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "incoterm": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 8
+    },
+    "currency": {
+      "type": "string",
+      "const": "AED"
+    },
+    "totalValue": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Must equal the sum of item values."
+    },
+    "submitted": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/EvidenceType"
+      }
+    },
+    "consignments": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "transportDocRef",
+          "containerIds",
+          "items"
+        ],
+        "properties": {
+          "transportDocRef": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "containerIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Z]{4}\\d{7}$"
+            }
+          },
+          "items": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "hsCode",
+                "description",
+                "category",
+                "origin",
+                "value",
+                "quantity",
+                "packages"
+              ],
+              "properties": {
+                "hsCode": {
+                  "type": "string",
+                  "pattern": "^\\d{6,12}$"
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 300
+                },
+                "descriptionAr": {
+                  "type": "string",
+                  "maxLength": 300
+                },
+                "category": {
+                  "$ref": "#/$defs/GoodsCategory"
+                },
+                "origin": {
+                  "type": "string",
+                  "pattern": "^[A-Z]{2}$"
+                },
+                "value": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "quantity": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "packages": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "flags": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9-]{1,40}$"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "EvidenceType": {
+      "type": "string",
+      "enum": [
+        "commercial-invoice",
+        "packing-list",
+        "transport-document",
+        "certificate-of-origin",
+        "health-certificate",
+        "lab-result",
+        "conformity-certificate",
+        "type-approval",
+        "import-permit",
+        "safety-data-sheet",
+        "inspection-result",
+        "release-order"
+      ]
+    },
+    "GoodsCategory": {
+      "type": "string",
+      "enum": [
+        "food",
+        "electronics",
+        "wireless",
+        "pharma",
+        "medical-device",
+        "chemicals",
+        "textiles",
+        "machinery",
+        "cosmetics",
+        "general"
+      ]
+    }
+  }
+}

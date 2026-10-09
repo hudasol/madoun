@@ -37,12 +37,16 @@ export interface Trader {
 export interface Forwarder {
   id: string;
   name: string;
+  /** Arabic name. Optional so existing data keeps working; the UI falls back to `name`. */
+  nameAr?: string;
 }
 
 export interface GoodsItem {
   id: string;
   hsCode: string; // digits only, 6 to 12
   description: string;
+  /** Arabic description. Optional; the UI falls back to `description`. */
+  descriptionAr?: string;
   category: GoodsCategory;
   origin: string; // ISO 3166-1 alpha-2
   value: number; // AED
@@ -64,7 +68,10 @@ export interface Shipment {
   declarationRef: string;
   mode: TransportMode;
   carrier: string;
+  carrierAr?: string;
   conveyance: string; // vessel / flight / truck
+  /** Arabic form of the conveyance where it contains words (vessel names). Flight and truck codes need none. */
+  conveyanceAr?: string;
   entryPoint: string; // e.g. Khalifa Port
   eta: ISODate;
   traderId: string;
@@ -349,6 +356,8 @@ export interface InspectionTask {
   requestedAt: ISODate;
   requestedBy: string;
   scope: string[];
+  /** Arabic twin of `scope`, same order. */
+  scopeAr?: string[];
   priority: 'normal' | 'high';
   constraints: string[];
 }
@@ -357,6 +366,7 @@ export interface InspectionFinding {
   kind: 'seal-broken' | 'undeclared-goods' | 'quantity-mismatch' | 'damage' | 'temperature-excursion' | 'prohibited-item' | 'none';
   severity: 'info' | 'minor' | 'major';
   note: string;
+  noteAr?: string;
 }
 
 export interface InspectionResult {

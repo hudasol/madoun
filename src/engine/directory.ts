@@ -6,14 +6,14 @@ export interface Directory {
   requirements: Requirement[];
   requirementById: Record<string, Requirement>;
   traders: Record<string, Trader>;
-  forwarders: Record<string, { id: string; name: string }>;
+  forwarders: Record<string, { id: string; name: string; nameAr?: string }>;
 }
 
 export function makeDirectory(input: {
   authorities: Authority[];
   requirements: Requirement[];
   traders: Trader[];
-  forwarders: { id: string; name: string }[];
+  forwarders: { id: string; name: string; nameAr?: string }[];
 }): Directory {
   return {
     authorities: Object.fromEntries(input.authorities.map((a) => [a.id, a])),

@@ -1,0 +1,187 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://madoun.example/schemas/evidence-receipt.schema.json",
+  "title": "EvidenceReceipt",
+  "type": "object",
+  "description": "A claim that an authority verified something, with scope, validity and a hash link. Not the document itself. Also published as docs/schemas/evidence-receipt.schema.json.",
+  "required": [
+    "id",
+    "type",
+    "subjectRef",
+    "summary",
+    "summaryAr",
+    "issuer",
+    "verifiedBy",
+    "method",
+    "scope",
+    "validFrom",
+    "validUntil",
+    "status",
+    "sharedWith",
+    "hash",
+    "prevHash",
+    "reuseLog"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "type": {
+      "$ref": "#/$defs/EvidenceType"
+    },
+    "subjectRef": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "summaryAr": {
+      "type": "string"
+    },
+    "issuer": {
+      "type": "string"
+    },
+    "verifiedBy": {
+      "type": "string",
+      "description": "Authority id."
+    },
+    "method": {
+      "type": "string",
+      "enum": [
+        "document-check",
+        "lab-test",
+        "system-lookup",
+        "officer-inspection",
+        "robotic-inspection",
+        "scanner-review"
+      ]
+    },
+    "scope": {
+      "type": "object",
+      "required": [
+        "level"
+      ],
+      "properties": {
+        "level": {
+          "type": "string",
+          "enum": [
+            "shipment",
+            "trader",
+            "trader-product"
+          ]
+        },
+        "shipmentId": {
+          "type": "string"
+        },
+        "traderId": {
+          "type": "string"
+        },
+        "hsChapters": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "hs6": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "origins": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "validFrom": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "validUntil": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "verified",
+        "pending",
+        "revoked"
+      ]
+    },
+    "revokedReason": {
+      "type": "string"
+    },
+    "sharedWith": {
+      "oneOf": [
+        {
+          "type": "string",
+          "const": "all"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "prevHash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "reuseLog": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "shipmentId",
+          "acceptedByAuthorityId",
+          "at",
+          "requirementId"
+        ],
+        "properties": {
+          "shipmentId": {
+            "type": "string"
+          },
+          "acceptedByAuthorityId": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "requirementId": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "EvidenceType": {
+      "type": "string",
+      "enum": [
+        "commercial-invoice",
+        "packing-list",
+        "transport-document",
+        "certificate-of-origin",
+        "health-certificate",
+        "lab-result",
+        "conformity-certificate",
+        "type-approval",
+        "import-permit",
+        "safety-data-sheet",
+        "inspection-result",
+        "release-order"
+      ]
+    }
+  }
+}

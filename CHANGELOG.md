@@ -3,6 +3,9 @@
 Milestones are listed with the commit that closes them. Git tags for each milestone are created locally
 as `vX.Y.Z-name`; if tags are missing on GitHub, create them with the commands at the bottom.
 
+## v1.1.0-adeo — review round 1 (government office)
+- Mock integration API (`/api/v1`), OpenAPI, JSON Schemas; role lens; clearance-record export; business-case panel; governance doc; Arabic data twins; reuse metric rebuilt; WCAG scan to zero violations. See docs/reviews/01-adeo.md.
+
 ## v0.9.1-polish — UI polish pass
 - Sticky header with nav indicator, consistent form controls and slider, table and panel depth, button states, mobile header, tower column fit. No feature changes.
 
