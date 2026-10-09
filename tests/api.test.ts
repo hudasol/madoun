@@ -153,3 +153,27 @@ describe('api v1', () => {
     expect((await post([])).status).toBe(422);
   });
 });
+
+describe('request limits', () => {
+  const post = async (body: string, headers: Record<string, string> = {}) => {
+    const { POST } = await import('@/app/api/v1/assessments/route');
+    return POST(new Request('http://x/api/v1/assessments', { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body }));
+  };
+
+  it('rejects a body over the byte limit even when it is multi-byte text', async () => {
+    // 100k Arabic letters are 100k characters but 200k bytes; 140k of them pass a character count and fail a byte count.
+    const res = await post(JSON.stringify({ x: 'م'.repeat(140_000) }));
+    expect(res.status).toBe(413);
+  });
+
+  it('rejects on the declared content-length without reading the body', async () => {
+    expect((await post('{}', { 'content-length': '999999' })).status).toBe(413);
+  });
+
+  it('caps consignments per declaration', async () => {
+    const c = { transportDocRef: 'B', containerIds: [], items: [] };
+    const res = await post(JSON.stringify({ consignments: Array.from({ length: 21 }, () => c) }));
+    expect(res.status).toBe(422);
+    expect(JSON.stringify(await res.json())).toContain('At most 20 consignments');
+  });
+});

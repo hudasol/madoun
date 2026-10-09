@@ -158,7 +158,7 @@ export function MethodDoc() {
         <ul className="space-y-2">
           {SOURCES.map(([href, k]) => (
             <li key={href}>
-              <a href={href} rel="noopener" className="underline underline-offset-2" style={{ color: 'var(--stamp)' }}>{t(k)}</a>
+              <a href={href} rel="noopener noreferrer" className="underline underline-offset-2" style={{ color: 'var(--stamp)' }}>{t(k)}</a>
               <span className="mono block break-all text-sm text-muted" dir="ltr">{href}</span>
             </li>
           ))}

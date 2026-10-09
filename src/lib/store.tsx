@@ -10,6 +10,7 @@ import {
   outcomeFromInspection, planShipment, replay, resultToReceiptDraft, simulate, simulateInspectionCell,
   type Directory, type ExceptionItem, type Kpis, type Lane, type LearningReport, type MadounEvent, type Outcome,
   type ShipmentFile, type ShipmentPlan, type SimOutput, type Suggestion, type World,
+  apply, validateEvent,
 } from '@/engine';
 
 export interface InFlight {
@@ -153,7 +154,22 @@ export function MadounProvider({ children }: { children: ReactNode }) {
     return computeKpis(data.sim.results.filter((r) => ms(r.clearedAt) <= cut));
   }, [data, deferredAt]);
 
-  const push = useCallback((evs: MadounEvent[]) => setOverlay((o) => [...o, ...evs]), []);
+  // Events are checked against the current world first: replay silently ignores a bad reference,
+  // so an invalid UI action would otherwise be logged and then do nothing.
+  const push = useCallback(
+    (evs: MadounEvent[]) => {
+      // A batch is checked in order against the world each earlier event produces (a request and its result travel together).
+      let w = world;
+      const ok: MadounEvent[] = [];
+      for (const e of evs) {
+        if (w && validateEvent(w, e).length > 0) continue;
+        ok.push(e);
+        if (w) w = apply(w, e);
+      }
+      if (ok.length) setOverlay((o) => [...o, ...ok]);
+    },
+    [world],
+  );
 
   const overrideLane = useCallback(
     (shipmentId: string, lane: Lane, reason: string) => push([{ type: 'OfficerOverride', at, shipmentId, lane, officerId: actor, reason }]),

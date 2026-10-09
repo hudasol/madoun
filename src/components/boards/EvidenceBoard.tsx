@@ -3,7 +3,7 @@
 import { download, ledgerCsv } from '@/lib/export';
 import Link from 'next/link';
 import { Fragment, useEffect, useId, useMemo, useState } from 'react';
-import { verifyChain, ms, type EvidenceReceipt } from '@/engine';
+import { demoAttestLedger, verifyAttestations, verifyChain, ms, type EvidenceReceipt, type SignatureReport } from '@/engine';
 import { Loading, PageTitle } from '@/components/Panel';
 import { Stamp, type StampTone } from '@/components/Stamp';
 import { useBi, useFormat, useT } from '@/lib/i18n';
@@ -18,6 +18,8 @@ const T = {
     idea: 'Check once, trust until it expires. The custodian authority keeps the document; Madoun keeps only the receipt: who verified what, for which goods, until when. Another authority can accept that receipt instead of asking again, if its sharing rules allow.',
     roleOperator: 'The ledger is for authorities and auditors. As a trader or agent you see the status of your own shipment on its file, not other parties\' receipts.', roleScope: 'Viewing as {who}: {n} of {m} receipts are visible under their sharing policies.', exportCsv: 'Download visible receipts (CSV)', receipts: 'Receipts', reuse: 'Reuse events', cross: 'Carried over from earlier shipments', crossNote: '{n} of {m} reuse events. The rest are an authority relying on a finding made in the same file.', integrity: 'Ledger integrity',
     ok: 'Chain intact', broken: 'Chain broken at receipt {n}', head: 'Head {h}',
+    sigCheck: 'Check signatures', sigRunning: 'Checking signatures…', sigOk: 'All {n} receipts carry a valid Ed25519 signature from the authority that verified them.',
+    sigBad: '{bad} of {n} receipts failed signature checks.', sigDemo: 'Demo keys: this proves the mechanism, not who signed. Real keys stay with each authority.',
     filter: 'Show', f_all: 'All receipts', f_soon: 'Expiring within 72 hours', f_expired: 'Expired', f_revoked: 'Revoked', f_own: 'Shared only with own authority', f_most: 'Most reused',
     count: '{n} receipts shown', caption: 'Evidence receipts', receipt: 'Receipt', scope: 'Scope', method: 'Method', sharedWith: 'Shared with', reuses: 'Times reused',
     allAuth: 'All authorities', shipmentScope: 'This shipment only', traderScope: 'All goods of {trader}', productScope: 'Products of {trader}', hs6: 'HS {codes}', more: '+{n} more',
@@ -30,6 +32,8 @@ const T = {
     idea: 'يُفحص الدليل مرة واحدة ويُعتمد حتى تنتهي صلاحيته. تحتفظ الجهة الحافظة بالمستند، ويحتفظ مدوّن بالإيصال فقط: من تحقق من ماذا، ولأي بضائع، وحتى متى. ويمكن لجهة أخرى قبول الإيصال بدل السؤال من جديد، إذا سمحت قواعد المشاركة.',
     roleOperator: 'السجل مخصص للجهات والمدققين. بصفتك مستورداً أو وكيلاً ترى حالة شحنتك في ملفها لا إيصالات الآخرين.', roleScope: 'العرض بصفة {who}: {n} من {m} إيصال ظاهر وفق سياسات المشاركة.', exportCsv: 'تنزيل الإيصالات الظاهرة (CSV)', receipts: 'الإيصالات', reuse: 'مرات إعادة الاستخدام', cross: 'منقول من شحنات سابقة', crossNote: '{n} من {m} مرة. والباقي اعتماد جهة على نتيجة تحققت في الملف نفسه.', integrity: 'سلامة السجل',
     ok: 'السلسلة سليمة', broken: 'السلسلة منقطعة عند الإيصال {n}', head: 'الرأس {h}',
+    sigCheck: 'فحص التوقيعات', sigRunning: 'جارٍ فحص التوقيعات…', sigOk: 'كل الإيصالات ({n}) تحمل توقيع Ed25519 صحيحاً من الجهة التي تحققت منها.',
+    sigBad: 'فشل فحص التوقيع في {bad} من {n} إيصال.', sigDemo: 'مفاتيح تجريبية: يثبت هذا الآلية لا هوية الموقّع. المفاتيح الحقيقية تبقى لدى كل جهة.',
     filter: 'عرض', f_all: 'كل الإيصالات', f_soon: 'تنتهي خلال 72 ساعة', f_expired: 'منتهية', f_revoked: 'ملغاة', f_own: 'مشتركة مع الجهة نفسها فقط', f_most: 'الأكثر إعادة استخدام',
     count: 'تم عرض {n} إيصال', caption: 'إيصالات الأدلة', receipt: 'الإيصال', scope: 'النطاق', method: 'الطريقة', sharedWith: 'مشترك مع', reuses: 'مرات إعادة الاستخدام',
     allAuth: 'كل الجهات', shipmentScope: 'هذه الشحنة فقط', traderScope: 'كل بضائع {trader}', productScope: 'منتجات {trader}', hs6: 'رمز النظام المنسق {codes}', more: '+{n} أخرى',
@@ -58,6 +62,7 @@ export function EvidenceBoard() {
   const [filter, setFilter] = useState<Filter>('all');
   const [page, setPage] = useState(0);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [sig, setSig] = useState<SignatureReport | 'running' | null>(null);
   const [focusId, setFocusId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -148,6 +153,31 @@ export function EvidenceBoard() {
           },
         ]}
       />
+
+      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+        <button
+          type="button"
+          className="btn !py-1"
+          disabled={sig === 'running'}
+          onClick={() => {
+            const ledger = s.world?.receipts ?? [];
+            setSig('running');
+            // Signing ~1k receipts takes seconds; yield first so the button state paints.
+            setTimeout(() => {
+              const { attestations, keys } = demoAttestLedger(ledger);
+              setSig(verifyAttestations(ledger, attestations, keys));
+            }, 30);
+          }}
+        >
+          {sig === 'running' ? t('sigRunning') : t('sigCheck')}
+        </button>
+        <p role="status" aria-live="polite" className="text-sm">
+          {sig && sig !== 'running' && (sig.valid
+            ? t('sigOk', { n: f.number(sig.total) })
+            : t('sigBad', { bad: f.number(sig.total - sig.signed), n: f.number(sig.total) }))}
+          {sig && sig !== 'running' && <span className="block text-muted">{t('sigDemo')}</span>}
+        </p>
+      </div>
 
       <div className="mt-6 flex flex-wrap items-end gap-4">
         <div>

@@ -12,6 +12,7 @@ import type {
   World,
 } from './types';
 import { allItems } from './types';
+import type { MadounEvent } from './types';
 
 export interface ShipmentPlan {
   shipment: Shipment;
@@ -19,6 +20,35 @@ export interface ShipmentPlan {
   checks: EvidenceCheck[];
   reviewPlan: ReviewPlan;
   assessment: RiskAssessment;
+}
+
+/**
+ * Origins a trader has already shipped from, excluding one shipment. Indexed per event log and extended
+ * as the log grows, so planning a shipment costs the trader's own history, not the size of the world.
+ */
+interface OriginIndex {
+  len: number;
+  byTrader: Map<string, Map<string, string[]>>;
+}
+const ORIGINS = new WeakMap<MadounEvent[], OriginIndex>();
+
+function knownOriginsFor(world: World, shipment: Shipment): string[] {
+  let ix = ORIGINS.get(world.log);
+  if (!ix) {
+    ix = { len: 0, byTrader: new Map() };
+    ORIGINS.set(world.log, ix);
+  }
+  for (; ix.len < world.log.length; ix.len++) {
+    const ev = world.log[ix.len];
+    if (ev.type !== 'ShipmentRegistered') continue;
+    const t = ev.shipment.traderId;
+    const m = ix.byTrader.get(t) ?? new Map<string, string[]>();
+    m.set(ev.shipment.id, allItems(ev.shipment).map((i) => i.origin));
+    ix.byTrader.set(t, m);
+  }
+  const out = new Set<string>();
+  for (const [id, origins] of ix.byTrader.get(shipment.traderId) ?? []) if (id !== shipment.id) for (const o of origins) out.add(o);
+  return [...out];
 }
 
 /** The brain: from a shipment and the current world, work out approvals, evidence status, schedule and lane. */
@@ -44,13 +74,7 @@ export function planShipment(world: World, dir: Directory, shipment: Shipment, n
   });
 
   const trader = dir.traders[shipment.traderId];
-  const knownOrigins = [
-    ...new Set(
-      Object.values(world.shipments)
-        .filter((f) => f.shipment.traderId === shipment.traderId && f.shipment.id !== shipment.id)
-        .flatMap((f) => allItems(f.shipment).map((i) => i.origin)),
-    ),
-  ];
+  const knownOrigins = knownOriginsFor(world, shipment);
 
   const assessment = assessRisk(shipment, {
     trader,
