@@ -9,7 +9,7 @@ const candidates = [process.env.PW_CHROMIUM, '/opt/pw-browsers/chromium', ...fs.
 const executablePath = candidates.find((p) => { try { return fs.statSync(p).isFile(); } catch { return false; } });
 const browser = await chromium.launch({ executablePath, args: ['--no-sandbox'] });
 
-const pages = ['/', '/shipments', '/shipments/SHP-0005', '/exceptions', '/evidence', '/learning', '/inspection', '/simulator', '/method'];
+const pages = ['/', '/shipments', '/shipments/SHP-0005', '/exceptions', '/evidence', '/learning', '/inspection', '/simulator', '/pilot', '/method'];
 let total = 0;
 const seen = new Map();
 for (const scheme of ['dark', 'light']) {

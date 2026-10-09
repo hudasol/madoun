@@ -11,14 +11,14 @@ import { useLabels } from '@/components/boards/labels';
 const T = {
   en: {
     tower: 'Control tower', shipments: 'Shipments', exceptions: 'Exceptions', evidence: 'Evidence', learning: 'Learning',
-    inspection: 'Inspection', simulator: 'Today vs Madoun', method: 'Method',
+    inspection: 'Inspection', simulator: 'Today vs Madoun', pilot: 'Pilot', method: 'Method',
     banner: 'Sample data: every shipment is synthetic and every rule is illustrative.',
     viewing: 'Viewing', now: 'Latest', scrub: 'Move through time', theme: 'Switch theme', lang: 'العربية', reset: 'Reset demo changes',
     skip: 'Skip to content', changes: '{n} demo change(s)', viewAs: 'Viewing as', roleHelp: 'Demo only: shows what each role could do and see. Real access control belongs on the server.',
   },
   ar: {
     tower: 'برج المراقبة', shipments: 'الشحنات', exceptions: 'الاستثناءات', evidence: 'الأدلة', learning: 'التعلّم',
-    inspection: 'الفحص', simulator: 'اليوم مقابل مدوّن', method: 'المنهجية',
+    inspection: 'الفحص', simulator: 'اليوم مقابل مدوّن', pilot: 'التجربة', method: 'المنهجية',
     banner: 'بيانات تجريبية: كل الشحنات اصطناعية وكل القواعد توضيحية.',
     viewing: 'العرض عند', now: 'الأحدث', scrub: 'التنقل عبر الزمن', theme: 'تبديل المظهر', lang: 'English', reset: 'إعادة ضبط تغييرات العرض',
     skip: 'انتقل إلى المحتوى', changes: '{n} تغيير(ات) تجريبية', viewAs: 'العرض بصفة', roleHelp: 'للعرض التوضيحي فقط: يبيّن ما يمكن لكل دور فعله ورؤيته. التحكم الفعلي بالصلاحيات مكانه الخادم.',
@@ -33,6 +33,7 @@ const NAV: { href: string; key: keyof typeof T.en }[] = [
   { href: '/learning', key: 'learning' },
   { href: '/inspection', key: 'inspection' },
   { href: '/simulator', key: 'simulator' },
+  { href: '/pilot', key: 'pilot' },
   { href: '/method', key: 'method' },
 ];
 
