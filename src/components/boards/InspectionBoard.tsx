@@ -16,7 +16,7 @@ const T = {
     intro: 'When a shipment lands in the red lane, Madoun issues an inspection task. Any performer can carry it out: an officer, a scanner, a drone or a ground robot. The result becomes a shareable evidence receipt and an outcome that feeds learning.',
     waiting: 'Waiting for inspection', waitingNone: 'No shipment is waiting for an inspection at this moment.',
     waitingCaption: 'Shipments waiting for inspection', shipment: 'Shipment', lane: 'Lane', scope: 'What to check', constraints: 'Constraints', priority: 'Priority', high: 'High', normal: 'Normal', noScope: 'Full physical inspection', noCons: 'None', containers: 'Containers',
-    run: 'Run inspection cell', ran: 'Inspection cell finished for {id}. The result is now under Completed.', cellNote: 'The cell is a simulator. It stands in for a real performer.',
+    roleNo: 'Your role cannot request an inspection', run: 'Run inspection cell', ran: 'Inspection cell finished for {id}. The result is now under Completed.', cellNote: 'The cell is a simulator. It stands in for a real performer.',
     completed: 'Completed', completedNone: 'No inspection has been completed yet.', completedCaption: 'Completed inspections',
     performer: 'Performed by', seal: 'Seal', intact: 'intact', broken: 'broken', findings: 'Findings', time: 'Completed', receipt: 'Receipt', openReceipt: 'Open receipt',
     byKind: 'By performer kind', kind: 'Performer', count: 'Inspections', withFindings: 'With findings', sealsBroken: 'Broken seals',
@@ -31,7 +31,7 @@ const T = {
     intro: 'عندما تقع شحنة في المسار الأحمر يصدر مدوّن مهمة فحص. ويمكن لأي منفّذ إجراؤها: ضابط أو ماسح أو طائرة مسيّرة أو روبوت أرضي. وتتحول النتيجة إلى إيصال دليل قابل للمشاركة ونتيجة تغذي التعلّم.',
     waiting: 'بانتظار الفحص', waitingNone: 'لا توجد شحنة بانتظار الفحص في هذه اللحظة.',
     waitingCaption: 'الشحنات بانتظار الفحص', shipment: 'الشحنة', lane: 'المسار', scope: 'ما المطلوب فحصه', constraints: 'القيود', priority: 'الأولوية', high: 'عالية', normal: 'عادية', noScope: 'فحص مادي كامل', noCons: 'لا يوجد', containers: 'الحاويات',
-    run: 'تشغيل خلية الفحص', ran: 'انتهت خلية الفحص من الشحنة {id}. النتيجة الآن ضمن المكتملة.', cellNote: 'الخلية محاكاة، وهي تحل محل منفّذ حقيقي.',
+    roleNo: 'دورك لا يتيح طلب الفحص', run: 'تشغيل خلية الفحص', ran: 'انتهت خلية الفحص من الشحنة {id}. النتيجة الآن ضمن المكتملة.', cellNote: 'الخلية محاكاة، وهي تحل محل منفّذ حقيقي.',
     completed: 'المكتملة', completedNone: 'لم يكتمل أي فحص بعد.', completedCaption: 'عمليات الفحص المكتملة',
     performer: 'المنفّذ', seal: 'الختم', intact: 'سليم', broken: 'مكسور', findings: 'الملاحظات', time: 'وقت الإكمال', receipt: 'الإيصال', openReceipt: 'فتح الإيصال',
     byKind: 'حسب نوع المنفّذ', kind: 'المنفّذ', count: 'عمليات الفحص', withFindings: 'مع ملاحظات', sealsBroken: 'أختام مكسورة',
@@ -119,7 +119,7 @@ export function InspectionBoard() {
                         {task.constraints.length === 0 ? <span className="text-muted">{t('noCons')}</span> : <ul className="list-disc ps-4">{task.constraints.map((c) => <li key={c}>{L.constraint(c)}</li>)}</ul>}
                       </td>
                       <td>{task.priority === 'high' ? t('high') : t('normal')}</td>
-                      <td><button type="button" className="btn" onClick={() => run(w.file.shipment.id)}>{t('run')}</button></td>
+                      <td><button type="button" className="btn" disabled={!s.can('run-inspection')} title={s.can('run-inspection') ? undefined : t('roleNo')} onClick={() => run(w.file.shipment.id)}>{t('run')}</button></td>
                     </tr>
                   );
                 })}
@@ -142,7 +142,7 @@ export function InspectionBoard() {
                   return (
                     <tr key={d.shipment.id}>
                       <td><Link href={`/shipments/${d.shipment.id}`} className="mono whitespace-nowrap underline underline-offset-2">{d.shipment.id}</Link></td>
-                      <td>{L.performer(r.performerKind)} <span className="mono text-sm text-muted" dir="ltr">{r.performedBy}</span></td>
+                      <td>{L.performer(r.performerKind)} <span className="text-sm text-muted">{L.owner(r.performedBy)}</span></td>
                       <td><span className="mono text-sm" dir="ltr">{r.seal.id}</span> {r.seal.intact ? t('intact') : <strong>{t('broken')}</strong>}</td>
                       <td>
                         <ul>{r.findings.map((x, i) => <li key={i}>{L.finding(x.kind)}{x.kind !== 'none' && <span className="text-muted"> ({L.severity(x.severity)})</span>}</li>)}</ul>

@@ -1,5 +1,6 @@
 'use client';
 
+import { RoleHint } from '@/components/RoleHint';
 import { useState } from 'react';
 import type { Suggestion } from '@/engine';
 import { Loading, PageTitle, Panel } from '@/components/Panel';
@@ -139,7 +140,7 @@ export function LearningBoard() {
                 <tbody>
                   {learning.missingEvidence.slice(0, 8).map((m) => (
                     <tr key={`${m.forwarderId}${m.type}`}>
-                      <td>{s.directory?.forwarders[m.forwarderId]?.name ?? m.forwarderId}</td>
+                      <td>{L.forwarder(m.forwarderId)}</td>
                       <td>{L.evidenceType(m.type)}</td>
                       <td className="whitespace-nowrap tabular-nums">{f.number(m.count)} <span className="text-muted">{t('of', { n: f.number(m.totalShipments) })}</span></td>
                     </tr>
@@ -161,7 +162,7 @@ export function LearningBoard() {
               const humanise = (txt: string, sg: typeof g) => {
                 let out = txt.split(`"${sg.key}"`).join(`"${L.signal(sg.key)}"`);
                 if (sg.evidenceType) out = out.split(`"${sg.evidenceType}"`).join(`"${L.evidenceType(sg.evidenceType)}"`);
-                if (sg.forwarderId) out = out.split(sg.forwarderId).join(s.directory?.forwarders[sg.forwarderId]?.name ?? sg.forwarderId);
+                if (sg.forwarderId) out = out.split(sg.forwarderId).join(L.forwarder(sg.forwarderId));
                 return out;
               };
               return (
@@ -171,13 +172,14 @@ export function LearningBoard() {
                   <p className="mt-2 max-w-[70ch]">{humanise(bi(g.rationale, g.rationaleAr), g)}</p>
                   {advisory ? (
                     <div className="mt-3 max-w-[70ch] border-s-2 border-line ps-3">
-                      <p>{t('contact', { fw: s.directory?.forwarders[g.forwarderId ?? '']?.name ?? g.forwarderId ?? '', doc: L.evidenceType(g.evidenceType ?? '').toLowerCase() })}</p>
+                      <p>{t('contact', { fw: L.forwarder(g.forwarderId), doc: L.evidenceType(g.evidenceType ?? '').toLowerCase() })}</p>
                       <p className="mt-1 text-sm text-muted">{t('advisory')}</p>
                     </div>
                   ) : (
                     <div className="mt-3 flex flex-wrap gap-2">
                       <button type="button" className="btn" disabled={p === 'busy'} onClick={() => runPreview(g)}>{p === 'busy' ? t('previewing') : t('preview')}</button>
-                      <button type="button" className="btn btn-primary" onClick={() => approve(g)}>{t('approve')}</button>
+                      <button type="button" className="btn btn-primary" disabled={!s.can('approve-suggestion')} onClick={() => approve(g)}>{t('approve')}</button>
+                      <RoleHint action="approve-suggestion" className="basis-full" />
                     </div>
                   )}
                   <div aria-live="polite">

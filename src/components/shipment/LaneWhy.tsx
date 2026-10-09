@@ -1,5 +1,6 @@
 'use client';
 
+import { RoleHint } from '@/components/RoleHint';
 import { useState } from 'react';
 import { LaneBadge } from '@/components/LaneBadge';
 import type { Lane, ShipmentFile, ShipmentPlan } from '@/engine';
@@ -184,7 +185,8 @@ export function LaneWhy({ file, plan }: { file: ShipmentFile; plan: ShipmentPlan
             <textarea id="ov-reason" rows={2} value={reason} onChange={(e) => setReason(e.target.value)} aria-invalid={err} aria-describedby="ov-msg"
               className="mt-1 w-full rounded-[3px] border border-line bg-panel px-3 py-2 text-ink" />
             <div className="mt-2 flex flex-wrap items-center gap-4">
-              <button type="submit" className="btn btn-primary">{t('save')}</button>
+              <button type="submit" className="btn btn-primary" disabled={!s.can('override-lane')}>{t('save')}</button>
+              <RoleHint action="override-lane" className="basis-full" />
               <p id="ov-msg" role="status" aria-live="polite" className={`text-sm ${err ? 'font-semibold' : ''}`}>{msg}</p>
             </div>
           </form>

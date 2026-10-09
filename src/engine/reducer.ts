@@ -5,6 +5,19 @@ export function emptyWorld(): World {
   return { shipments: {}, receipts: [], weightOverrides: {}, log: [] };
 }
 
+/** Arabic words for engine enum values that appear inside audit sentences. */
+const LANE_AR: Record<string, string> = { green: 'الأخضر', amber: 'الكهرماني', red: 'الأحمر' };
+const REVIEW_AR: Record<string, string> = { approved: 'تمت الموافقة', rejected: 'مرفوضة', 'needs-info': 'تحتاج معلومات إضافية' };
+const KIND_AR: Record<string, string> = {
+  'idle-review': 'مراجعة متوقفة',
+  'missing-evidence': 'دليل ناقص',
+  'evidence-expiring': 'دليل قارب على الانتهاء',
+  'authority-conflict': 'خلاف بين الجهات',
+  'unowned-handoff': 'تسليم بلا مسؤول',
+};
+const OUTCOME_AR: Record<string, string> = { confirmed: 'مخالفة مؤكدة', 'false-alarm': 'إنذار خاطئ', 'not-inspected': 'لم يُفحص' };
+const ar = (m: Record<string, string>, k: string) => m[k] ?? k;
+
 function audit(file: ShipmentFile, at: string, actor: string, action: string, actionAr: string): AuditEntry[] {
   return [...file.audit, { at, actor, action, actionAr }];
 }
@@ -70,25 +83,25 @@ export function apply(world: World, ev: MadounEvent): World {
             note: ev.note,
           },
         },
-        audit: audit(f, ev.at, ev.officerId, `Completed review ${ev.requirementId}: ${ev.result}`, `اكتملت المراجعة ${ev.requirementId}: ${ev.result}`),
+        audit: audit(f, ev.at, ev.officerId, `Completed review ${ev.requirementId}: ${ev.result}`, `اكتملت المراجعة ${ev.requirementId}: ${ar(REVIEW_AR, ev.result)}`),
       }));
     case 'LaneAssigned':
       return mapFile(next, ev.shipmentId, (f) => ({
         ...f,
         assessment: ev.assessment,
-        audit: audit(f, ev.at, 'madoun', `Lane recommended: ${ev.assessment.lane}`, `المسار الموصى به: ${ev.assessment.lane}`),
+        audit: audit(f, ev.at, 'madoun', `Lane recommended: ${ev.assessment.lane}`, `المسار الموصى به: ${ar(LANE_AR, ev.assessment.lane)}`),
       }));
     case 'OfficerOverride':
       return mapFile(next, ev.shipmentId, (f) => ({
         ...f,
         override: { lane: ev.lane, officerId: ev.officerId, reason: ev.reason, at: ev.at },
-        audit: audit(f, ev.at, ev.officerId, `Lane overridden to ${ev.lane}: ${ev.reason}`, `تم تعديل المسار إلى ${ev.lane}: ${ev.reason}`),
+        audit: audit(f, ev.at, ev.officerId, `Lane overridden to ${ev.lane}: ${ev.reason}`, `تم تعديل المسار إلى ${ar(LANE_AR, ev.lane)}: ${ev.reason}`),
       }));
     case 'ExceptionOpened':
       return mapFile(next, ev.exception.shipmentId, (f) => ({
         ...f,
         exceptions: [...f.exceptions.filter((e) => e.id !== ev.exception.id), ev.exception],
-        audit: audit(f, ev.at, 'madoun', `Exception opened (${ev.exception.kind}), owner ${ev.exception.ownerId}`, `فتح استثناء (${ev.exception.kind})، المسؤول ${ev.exception.ownerId}`),
+        audit: audit(f, ev.at, 'madoun', `Exception opened (${ev.exception.kind}), owner ${ev.exception.ownerId}`, `فتح استثناء (${ar(KIND_AR, ev.exception.kind)})، المسؤول ${ev.exception.ownerId}`),
       }));
     case 'ExceptionResolved': {
       const shipments = Object.fromEntries(
@@ -122,7 +135,7 @@ export function apply(world: World, ev: MadounEvent): World {
       return mapFile(next, ev.outcome.shipmentId, (f) => ({
         ...f,
         outcome: ev.outcome,
-        audit: audit(f, ev.at, 'madoun', `Outcome recorded: ${ev.outcome.result}`, `تسجيل النتيجة: ${ev.outcome.result}`),
+        audit: audit(f, ev.at, 'madoun', `Outcome recorded: ${ev.outcome.result}`, `تسجيل النتيجة: ${ar(OUTCOME_AR, ev.outcome.result)}`),
       }));
     case 'ShipmentCleared':
       return mapFile(next, ev.shipmentId, (f) => ({

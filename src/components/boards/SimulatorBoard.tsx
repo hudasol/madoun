@@ -8,6 +8,7 @@ import { useFormat, useT } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { Modelled } from './Figures';
 import { ReleaseChart } from './ReleaseChart';
+import { ValuePanel } from './ValuePanel';
 
 const T = {
   en: {
@@ -173,6 +174,8 @@ export function SimulatorBoard() {
               </table>
             </div>
           </section>
+
+          <ValuePanel avgHoursSaved={results.length ? results.reduce((a, r) => a + (r.todayHours - r.madounHours), 0) / results.length : 0} />
         </>
       )}
 

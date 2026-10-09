@@ -1,5 +1,6 @@
 'use client';
 
+import { download, ledgerCsv } from '@/lib/export';
 import Link from 'next/link';
 import { Fragment, useEffect, useId, useMemo, useState } from 'react';
 import { verifyChain, ms, type EvidenceReceipt } from '@/engine';
@@ -15,7 +16,7 @@ const T = {
   en: {
     title: 'Evidence ledger',
     idea: 'Check once, trust until it expires. The custodian authority keeps the document; Madoun keeps only the receipt: who verified what, for which goods, until when. Another authority can accept that receipt instead of asking again, if its sharing rules allow.',
-    receipts: 'Receipts', reuse: 'Reuse events', cross: 'Reuse across authorities', crossNote: '{n} of {m} reuse events', integrity: 'Ledger integrity',
+    roleOperator: 'The ledger is for authorities and auditors. As a trader or agent you see the status of your own shipment on its file, not other parties\' receipts.', roleScope: 'Viewing as {who}: {n} of {m} receipts are visible under their sharing policies.', exportCsv: 'Download visible receipts (CSV)', receipts: 'Receipts', reuse: 'Reuse events', cross: 'Carried over from earlier shipments', crossNote: '{n} of {m} reuse events. The rest are an authority relying on a finding made in the same file.', integrity: 'Ledger integrity',
     ok: 'Chain intact', broken: 'Chain broken at receipt {n}', head: 'Head {h}',
     filter: 'Show', f_all: 'All receipts', f_soon: 'Expiring within 72 hours', f_expired: 'Expired', f_revoked: 'Revoked', f_own: 'Shared only with own authority', f_most: 'Most reused',
     count: '{n} receipts shown', caption: 'Evidence receipts', receipt: 'Receipt', scope: 'Scope', method: 'Method', sharedWith: 'Shared with', reuses: 'Times reused',
@@ -27,7 +28,7 @@ const T = {
   ar: {
     title: 'سجل الأدلة',
     idea: 'يُفحص الدليل مرة واحدة ويُعتمد حتى تنتهي صلاحيته. تحتفظ الجهة الحافظة بالمستند، ويحتفظ مدوّن بالإيصال فقط: من تحقق من ماذا، ولأي بضائع، وحتى متى. ويمكن لجهة أخرى قبول الإيصال بدل السؤال من جديد، إذا سمحت قواعد المشاركة.',
-    receipts: 'الإيصالات', reuse: 'مرات إعادة الاستخدام', cross: 'إعادة الاستخدام بين الجهات', crossNote: '{n} من {m} مرة', integrity: 'سلامة السجل',
+    roleOperator: 'السجل مخصص للجهات والمدققين. بصفتك مستورداً أو وكيلاً ترى حالة شحنتك في ملفها لا إيصالات الآخرين.', roleScope: 'العرض بصفة {who}: {n} من {m} إيصال ظاهر وفق سياسات المشاركة.', exportCsv: 'تنزيل الإيصالات الظاهرة (CSV)', receipts: 'الإيصالات', reuse: 'مرات إعادة الاستخدام', cross: 'منقول من شحنات سابقة', crossNote: '{n} من {m} مرة. والباقي اعتماد جهة على نتيجة تحققت في الملف نفسه.', integrity: 'سلامة السجل',
     ok: 'السلسلة سليمة', broken: 'السلسلة منقطعة عند الإيصال {n}', head: 'الرأس {h}',
     filter: 'عرض', f_all: 'كل الإيصالات', f_soon: 'تنتهي خلال 72 ساعة', f_expired: 'منتهية', f_revoked: 'ملغاة', f_own: 'مشتركة مع الجهة نفسها فقط', f_most: 'الأكثر إعادة استخدام',
     count: 'تم عرض {n} إيصال', caption: 'إيصالات الأدلة', receipt: 'الإيصال', scope: 'النطاق', method: 'الطريقة', sharedWith: 'مشترك مع', reuses: 'مرات إعادة الاستخدام',
@@ -66,7 +67,8 @@ export function EvidenceBoard() {
     } catch { /* ignore */ }
   }, []);
 
-  const receipts = s.world?.receipts;
+  const receipts = useMemo(() => s.world?.receipts.filter((r) => s.canSee(r)), [s.world, s.viewAs]); // eslint-disable-line react-hooks/exhaustive-deps
+  const total = s.world?.receipts.length ?? 0;
   const atMs = ms(s.at || new Date().toISOString());
 
   const state = (r: EvidenceReceipt): 'valid' | 'soon' | 'expired' | 'revoked' => {
@@ -80,10 +82,11 @@ export function EvidenceBoard() {
   const stats = useMemo(() => {
     const list = receipts ?? [];
     let reuse = 0, cross = 0;
-    for (const r of list) for (const e of r.reuseLog) { reuse++; if (e.acceptedByAuthorityId !== r.verifiedBy) cross++; }
-    const chain = verifyChain(list);
-    return { reuse, cross, chain, head: list.length ? list[list.length - 1].hash : '' };
-  }, [receipts]);
+    for (const r of list) for (const e of r.reuseLog) { reuse++; if (r.scope.level !== 'shipment') cross++; }
+    const all = s.world?.receipts ?? [];
+    const chain = verifyChain(all);
+    return { reuse, cross, chain, head: all.length ? all[all.length - 1].hash : '' };
+  }, [receipts, s.world]);
 
   const rows = useMemo(() => {
     let list = [...(receipts ?? [])].reverse();
@@ -128,6 +131,11 @@ export function EvidenceBoard() {
   return (
     <div>
       <PageTitle title={t('title')} intro={t('idea')} />
+      {s.viewAs !== 'auditor' && (
+        <p role="note" className="mb-4 max-w-[70ch] border-s-2 border-line ps-3 text-sm text-muted">
+          {s.viewAs === 'operator' ? t('roleOperator') : t('roleScope', { who: L.role(s.viewAs), n: f.number(receipts.length), m: f.number(total) })}
+        </p>
+      )}
       <Figures
         items={[
           { label: t('receipts'), value: f.number(receipts.length) },
@@ -149,6 +157,7 @@ export function EvidenceBoard() {
           </select>
         </div>
         <p className="text-sm text-muted" aria-live="polite">{t('count', { n: f.number(rows.length) })}</p>
+        <button type="button" className="btn !py-1 ms-auto" onClick={() => download('madoun-evidence-ledger.csv', 'text/csv', ledgerCsv(rows))}>{t('exportCsv')}</button>
         {focusId && (
           <p className="text-sm">{t('focus')} <button type="button" className="underline underline-offset-2" onClick={() => setFocusId(null)}>{t('showAll')}</button></p>
         )}
@@ -195,8 +204,8 @@ export function EvidenceBoard() {
                         <div className="grid gap-6 md:grid-cols-2">
                           <div>
                             <h3 className="text-base">{t('summary')}</h3>
-                            <p className="mt-1">{bi(r.summary, r.summaryAr)}</p>
-                            <p className="mt-1 text-sm text-muted">{t('issuer')}: <span className="mono" dir="ltr">{r.issuer}</span></p>
+                            <p className="mt-1">{L.actorsIn(bi(r.summary, r.summaryAr))}</p>
+                            <p className="mt-1 text-sm text-muted">{t('issuer')}: <span>{L.owner(r.issuer)}</span></p>
                             {r.status === 'revoked' && <p className="mt-1 text-sm" style={{ color: 'var(--red)' }}>{t('revokedBecause', { r: r.revokedReason ?? '' })}</p>}
                             <dl className="mt-3 space-y-1 text-sm">
                               <div><dt className="inline text-muted">{t('hash')}: </dt><dd className="inline"><Hash value={r.hash} /></dd></div>

@@ -18,7 +18,7 @@ const T = {
     filters: 'Filters', kind: 'Kind', authority: 'Authority', minLevel: 'Minimum level', all: 'All', levelN: 'Level {n} or higher',
     listCaption: 'Open exceptions, longest-running first', shipment: 'Shipment', owner: 'Owner', detail: 'What is stuck', clock: 'Clock', level: 'Escalation', action: 'Action',
     level0: 'Level {n}', level3: 'Level {n}', ladder: 'Escalation level {n} of 3. A delay moves up a level every {h} hours.',
-    resolve: 'Resolve', cancel: 'Cancel', confirm: 'Confirm resolution', note: 'Resolution note', notePh: 'What was done, and by whom',
+    resolve: 'Resolve', roleNo: 'Your role cannot resolve this item', cancel: 'Cancel', confirm: 'Confirm resolution', note: 'Resolution note', notePh: 'What was done, and by whom',
     noteNeeded: 'Write a short note so the record shows why this was closed.',
     resolved: 'Resolved: {kind} on {id}. It is now in the audit trail with your note.',
     noMatch: 'No exceptions match these filters.', clear: 'Clear filters',
@@ -39,7 +39,7 @@ const T = {
     filters: 'التصفية', kind: 'النوع', authority: 'الجهة', minLevel: 'أدنى مستوى تصعيد', all: 'الكل', levelN: 'المستوى {n} فما فوق',
     listCaption: 'الاستثناءات المفتوحة، الأطول مدة أولاً', shipment: 'الشحنة', owner: 'المسؤول', detail: 'ما الذي تعطّل', clock: 'الساعة', level: 'التصعيد', action: 'الإجراء',
     level0: 'المستوى {n}', level3: 'المستوى {n}', ladder: 'مستوى التصعيد {n} من 3. يرتفع التأخير مستوىً كل {h} ساعة.',
-    resolve: 'حلّ', cancel: 'إلغاء', confirm: 'تأكيد الحل', note: 'ملاحظة الحل', notePh: 'ما الذي تم ومن قام به',
+    resolve: 'حلّ', roleNo: 'دورك لا يتيح حل هذا البند', cancel: 'إلغاء', confirm: 'تأكيد الحل', note: 'ملاحظة الحل', notePh: 'ما الذي تم ومن قام به',
     noteNeeded: 'اكتب ملاحظة قصيرة ليظهر في السجل سبب الإغلاق.',
     resolved: 'تم الحل: {kind} للشحنة {id}. أصبح في سجل التدقيق مع ملاحظتك.',
     noMatch: 'لا توجد استثناءات تطابق هذه المعايير.', clear: 'مسح المعايير',
@@ -202,7 +202,7 @@ export function ExceptionsBoard() {
                       <td><Ladder level={e.escalationLevel} /></td>
                       <td className="min-w-[15rem]">
                         {!isOpen ? (
-                          <button type="button" className="btn" aria-expanded="false" onClick={() => { setOpenId(e.id); setNote(''); setNoteError(false); }}>{t('resolve')}</button>
+                          <button type="button" className="btn" aria-expanded="false" disabled={!s.can('resolve-exception', e.authorityId)} title={s.can('resolve-exception', e.authorityId) ? undefined : t('roleNo')} onClick={() => { setOpenId(e.id); setNote(''); setNoteError(false); }}>{t('resolve')}</button>
                         ) : (
                           <div>
                             <label htmlFor={`${uid}n${e.id}`} className="block text-sm text-muted">{t('note')}</label>

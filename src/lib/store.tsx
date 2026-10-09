@@ -4,6 +4,7 @@ import {
   createContext, useCallback, useContext, useDeferredValue, useEffect, useMemo, useState, type ReactNode,
 } from 'react';
 import { generate, type Generated } from '@/data/generate';
+import { actorId, can as canDo, canSeeReceipt, parseViewAs, DEFAULT_VIEW_AS, type Action, type ViewAs } from '@/lib/roles';
 import {
   addHours, computeKpis, computeLearning, createInspectionTask, detectExceptions, hoursBetween, makeRng, ms,
   outcomeFromInspection, planShipment, replay, resultToReceiptDraft, simulate, simulateInspectionCell,
@@ -62,6 +63,10 @@ export interface Store {
   runInspection: (shipmentId: string) => void;
   resetDemo: () => void;
   overlayCount: number;
+  viewAs: ViewAs;
+  setViewAs: (v: ViewAs) => void;
+  can: (action: Action, authorityId?: string) => boolean;
+  canSee: (r: Parameters<typeof canSeeReceipt>[1]) => boolean;
 }
 
 const Ctx = createContext<Store | null>(null);
@@ -78,6 +83,15 @@ export function MadounProvider({ children }: { children: ReactNode }) {
   const [at, setAt] = useState('');
   const [overlay, setOverlay] = useState<MadounEvent[]>([]);
   const [previewCache] = useState(() => new Map<string, SuggestionPreview>());
+  const [viewAs, setViewAsState] = useState<ViewAs>(DEFAULT_VIEW_AS);
+  useEffect(() => {
+    try { setViewAsState(parseViewAs(localStorage.getItem('madoun.viewAs'))); } catch { /* ignore */ }
+  }, []);
+  const setViewAs = useCallback((v: ViewAs) => {
+    setViewAsState(v);
+    try { localStorage.setItem('madoun.viewAs', v); } catch { /* ignore */ }
+  }, []);
+  const actor = actorId(viewAs);
 
   useEffect(() => {
     // Let the first paint happen, then build the synthetic world in the browser.
@@ -142,8 +156,8 @@ export function MadounProvider({ children }: { children: ReactNode }) {
   const push = useCallback((evs: MadounEvent[]) => setOverlay((o) => [...o, ...evs]), []);
 
   const overrideLane = useCallback(
-    (shipmentId: string, lane: Lane, reason: string) => push([{ type: 'OfficerOverride', at, shipmentId, lane, officerId: 'adc:officer-you', reason }]),
-    [at, push],
+    (shipmentId: string, lane: Lane, reason: string) => push([{ type: 'OfficerOverride', at, shipmentId, lane, officerId: actor, reason }]),
+    [at, push, actor],
   );
 
   const resolveException = useCallback(
@@ -153,18 +167,18 @@ export function MadounProvider({ children }: { children: ReactNode }) {
       if (!ex) return;
       push([
         { type: 'ExceptionOpened', at, exception: { ...ex, state: 'open' } },
-        { type: 'ExceptionResolved', at, exceptionId: id, officerId: 'adc:officer-you', note },
+        { type: 'ExceptionResolved', at, exceptionId: id, officerId: actor, note },
       ]);
     },
-    [at, exceptions, push],
+    [at, exceptions, push, actor],
   );
 
   const approveSuggestion = useCallback(
     (s: Suggestion) => {
       if (s.kind === 'pre-check-forwarder' || !s.multiplier) return;
-      push([{ type: 'RuleSuggestionApproved', at, key: s.key, multiplier: s.multiplier, officerId: 'adc:officer-you' }]);
+      push([{ type: 'RuleSuggestionApproved', at, key: s.key, multiplier: s.multiplier, officerId: actor }]);
     },
-    [at, push],
+    [at, push, actor],
   );
 
   const previewSuggestion = useCallback(
@@ -195,7 +209,7 @@ export function MadounProvider({ children }: { children: ReactNode }) {
       const f = world.shipments[shipmentId];
       if (!p || !f) return;
       const rng = makeRng(data.g.seed + shipmentId.length * 131 + overlay.length);
-      const task = createInspectionTask(f.shipment, p.assessment, at, 'adc:officer-you');
+      const task = createInspectionTask(f.shipment, p.assessment, at, actor);
       const base = simulateInspectionCell(task, data.g.truth[shipmentId] ?? {}, rng, at);
       const result = { ...base, completedAt: at }; // completes at the viewed moment so it shows immediately
       push([
@@ -205,7 +219,7 @@ export function MadounProvider({ children }: { children: ReactNode }) {
         { type: 'OutcomeRecorded', at, outcome: outcomeFromInspection(f.shipment, p.assessment, result, [], at) },
       ]);
     },
-    [data, world, plan, overlay.length, at, push],
+    [data, world, plan, overlay.length, at, push, actor],
   );
 
   const resetDemo = useCallback(() => {
@@ -237,6 +251,10 @@ export function MadounProvider({ children }: { children: ReactNode }) {
     runInspection,
     resetDemo,
     overlayCount: overlay.length,
+    viewAs,
+    setViewAs,
+    can: (action, authorityId) => canDo(viewAs, action, authorityId),
+    canSee: (r) => canSeeReceipt(viewAs, r),
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

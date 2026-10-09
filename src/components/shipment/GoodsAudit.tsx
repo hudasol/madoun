@@ -3,6 +3,7 @@
 import type { ShipmentFile } from '@/engine';
 import { allItems } from '@/engine';
 import { useBi, useFormat, useLocale, useT } from '@/lib/i18n';
+import { useStore } from '@/lib/store';
 import { useLabels } from './labels';
 
 const T = {
@@ -20,6 +21,7 @@ const T = {
 
 export function GoodsTable({ file }: { file: ShipmentFile }) {
   const t = useT(T);
+  const bi = useBi();
   const f = useFormat();
   const { locale } = useLocale();
   const items = allItems(file.shipment);
@@ -39,7 +41,7 @@ export function GoodsTable({ file }: { file: ShipmentFile }) {
             {items.map((i) => (
               <tr key={i.id}>
                 <td className="mono text-[0.88rem]">{i.hsCode}</td>
-                <td>{i.description}</td>
+                <td>{bi(i.description, i.descriptionAr)}</td>
                 <td>{region?.of(i.origin) ?? i.origin}</td>
                 <td className="text-end">{f.number(i.value)}</td>
                 <td className="text-end">{f.number(i.quantity)}</td>
@@ -58,6 +60,14 @@ export function AuditTrail({ file }: { file: ShipmentFile }) {
   const f = useFormat();
   const bi = useBi();
   const L = useLabels();
+  const dir = useStore().directory;
+  // Audit lines carry requirement ids ('cus-docs'); show the requirement's name instead.
+  const withRequirementNames = (text: string) => {
+    if (!dir) return text;
+    let out = text;
+    for (const r of [...dir.requirements].sort((x, y) => y.id.length - x.id.length)) out = out.split(r.id).join(bi(r.label, r.labelAr));
+    return out;
+  };
   return (
     <section className="panel" aria-labelledby="a-h">
       <header className="border-b border-line px-4 py-3">
@@ -72,7 +82,7 @@ export function AuditTrail({ file }: { file: ShipmentFile }) {
               <tr key={i}>
                 <td className="whitespace-nowrap">{f.dateTime(a.at)}</td>
                 <td>{L.owner(a.actor)}</td>
-                <td>{bi(a.action, a.actionAr)}</td>
+                <td>{L.actorsIn(withRequirementNames(bi(a.action, a.actionAr)))}</td>
               </tr>
             ))}
           </tbody>

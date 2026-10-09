@@ -21,6 +21,7 @@ export function createInspectionTask(shipment: Shipment, assessment: RiskAssessm
   const items = allItems(shipment);
   const urgent = items.some((i) => i.flags.includes('perishable') || i.flags.includes('cold-chain'));
   const scope = assessment.recommendedChecks.map((c) => c.text);
+  const scopeAr = assessment.recommendedChecks.map((c) => c.textAr);
   const constraints: string[] = [];
   if (items.some((i) => i.flags.includes('hazardous'))) constraints.push('hazardous-materials-protocol');
   if (items.some((i) => i.flags.includes('cold-chain'))) constraints.push('keep-cold-chain-intact');
@@ -32,10 +33,21 @@ export function createInspectionTask(shipment: Shipment, assessment: RiskAssessm
     requestedAt: now,
     requestedBy,
     scope,
+    scopeAr,
     priority: urgent ? 'high' : 'normal',
     constraints,
   };
 }
+
+const FINDING_AR: Record<InspectionFinding['kind'], string> = {
+  none: 'لا ملاحظات',
+  'seal-broken': 'ختم مكسور',
+  'undeclared-goods': 'بضائع غير مصرح بها',
+  'quantity-mismatch': 'عدم تطابق الكمية',
+  damage: 'تلف في التغليف',
+  'temperature-excursion': 'تجاوز في درجة الحرارة',
+  'prohibited-item': 'مادة محظورة',
+};
 
 const METHOD: Record<InspectionResult['performerKind'], EvidenceMethod> = {
   robot: 'robotic-inspection',
@@ -56,7 +68,7 @@ export function resultToReceiptDraft(result: InspectionResult): Omit<EvidenceRec
       : `Inspection by ${result.performedBy}: ${result.findings.map((f) => f.kind).join(', ')}`,
     summaryAr: clean
       ? `فحص بواسطة ${result.performedBy}: لا ملاحظات، الختم ${result.seal.intact ? 'سليم' : 'مكسور'}`
-      : `فحص بواسطة ${result.performedBy}: ${result.findings.map((f) => f.kind).join('، ')}`,
+      : `فحص بواسطة ${result.performedBy}: ${result.findings.map((f) => FINDING_AR[f.kind]).join('، ')}`,
     issuer: result.performedBy,
     verifiedBy: 'adc',
     method: METHOD[result.performerKind],
@@ -84,11 +96,11 @@ export function simulateInspectionCell(
 ): InspectionResult {
   const findings: InspectionFinding[] = [];
   if (truth.violation && rng.chance(opts.detectionRate)) {
-    findings.push({ kind: truth.violation, severity: truth.violation === 'damage' ? 'minor' : 'major', note: 'Detected during scripted inspection' });
+    findings.push({ kind: truth.violation, severity: truth.violation === 'damage' ? 'minor' : 'major', note: 'Detected during scripted inspection', noteAr: 'تم الرصد أثناء الفحص المبرمج' });
   } else if (!truth.violation && rng.chance(opts.falsePositiveRate)) {
-    findings.push({ kind: 'damage', severity: 'info', note: 'Superficial packaging damage' });
+    findings.push({ kind: 'damage', severity: 'info', note: 'Superficial packaging damage', noteAr: 'تلف سطحي في التغليف' });
   }
-  if (findings.length === 0) findings.push({ kind: 'none', severity: 'info', note: 'No discrepancies found' });
+  if (findings.length === 0) findings.push({ kind: 'none', severity: 'info', note: 'No discrepancies found', noteAr: 'لم تُرصد أي مخالفات' });
   const sealBroken = findings.some((f) => f.kind === 'seal-broken');
   return {
     taskId: task.id,

@@ -64,7 +64,11 @@ npm run build
 
 Modelled result on the synthetic week (240 shipments, seeded, reproducible): median release 27.3 h → 16.0 h (−41%), p90 48.3 h → 31.1 h, approvals ready before arrival 62.5% → 77.1%, 294 repeat checks avoided. These are model outputs on invented data, not a performance claim. Queue waits for full reviews are deliberately not reduced.
 
-Docs: [plan](plan.md), [architecture](docs/architecture.md), [data model](docs/data-model.md), [robotics extension](docs/robotics-extension.md), [research notes](docs/research-notes.md), [demo script](docs/demo-script.md).
+API: a mock integration API is served under `/api/v1` (spec in `public/openapi.yaml`). Accessibility: `npm run a11y` (with the app running).
+
+Reviews: each round of expert critique and its checklist is in [docs/reviews](docs/reviews).
+
+Docs: [plan](plan.md), [governance](docs/governance.md), [integration](docs/integration.md), [architecture](docs/architecture.md), [data model](docs/data-model.md), [robotics extension](docs/robotics-extension.md), [research notes](docs/research-notes.md), [demo script](docs/demo-script.md).
 
 ## Roadmap
 

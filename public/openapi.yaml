@@ -1,0 +1,798 @@
+openapi: 3.1.0
+info:
+  title: Madoun mock integration API
+  version: 1.0.0-mock
+  summary: Read-mostly mock API showing the adapter seam between ATLP/MAMAR and Madoun.
+  description: |
+    **This is a mock.** Every response is built from a seeded synthetic dataset generated in-process.
+    No real trader, declaration or receipt appears, and nothing is persisted. Every response carries
+    `X-Madoun-Synthetic: true` and `Cache-Control: no-store`.
+
+    **Authentication is not implemented.** The server has a placeholder (`src/server/auth.ts`) that
+    allows every request. The intended design (mTLS between systems plus per-client API keys) is
+    described in `docs/integration.md` and is not part of this contract yet.
+
+    Pagination: list endpoints take `page` (from 1) and `pageSize` (1 to 100, default 25) and return
+    `{data, page}`. Order is a fixed total order, so paging never skips or repeats rows.
+    Errors always use `{error:{code,message,details?}}`.
+  license:
+    name: MIT
+servers:
+  - url: /api/v1
+    description: Same origin as the running app
+tags:
+  - name: Meta
+  - name: Shipments
+  - name: Evidence
+  - name: Operations
+  - name: Adapter
+paths:
+  /health:
+    get:
+      tags: [Meta]
+      operationId: getHealth
+      summary: Service status and dataset facts
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Health' }
+  /shipments:
+    get:
+      tags: [Shipments]
+      operationId: listShipments
+      summary: List shipment files (summaries)
+      description: Ordered by `filedAt`, then `id`.
+      parameters:
+        - name: lane
+          in: query
+          description: Effective lane (an officer override wins over the recommendation).
+          schema: { $ref: '#/components/schemas/Lane' }
+        - name: status
+          in: query
+          schema: { type: string, enum: [in-flight, cleared] }
+        - name: q
+          in: query
+          description: Case-insensitive substring match on id, declaration reference, trader name, entry point, transport document or goods description; or an HS code prefix.
+          schema: { type: string }
+        - { $ref: '#/components/parameters/page' }
+        - { $ref: '#/components/parameters/pageSize' }
+      responses:
+        '200':
+          description: A page of shipment summaries
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, page]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/ShipmentSummary' }
+                  page: { $ref: '#/components/schemas/PageInfo' }
+        '400': { $ref: '#/components/responses/BadQuery' }
+  /shipments/{id}:
+    get:
+      tags: [Shipments]
+      operationId: getShipment
+      summary: Full shipment file
+      description: >
+        The declaration as held by Madoun, the requirements it triggers, evidence checks against
+        the current receipts, the review plan, the risk assessment with reasons, exceptions and
+        the audit trail. The plan is recomputed at the dataset snapshot time (`evaluatedAt`).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, examples: [SHP-0070] }
+      responses:
+        '200':
+          description: The shipment file
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ShipmentFileResponse' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /receipts:
+    get:
+      tags: [Evidence]
+      operationId: listReceipts
+      summary: List evidence receipts
+      description: Ledger order (the order the hash chain was written). Receipts hold claims and hashes, never documents.
+      parameters:
+        - name: type
+          in: query
+          schema: { $ref: '#/components/schemas/EvidenceType' }
+        - name: verifiedBy
+          in: query
+          description: Authority id that verified the receipt.
+          schema: { type: string }
+        - name: status
+          in: query
+          schema: { type: string, enum: [verified, pending, revoked] }
+        - name: sharedWith
+          in: query
+          description: Authority id. Returns receipts that authority may rely on (`sharedWith` is `all` or lists it).
+          schema: { type: string }
+        - { $ref: '#/components/parameters/page' }
+        - { $ref: '#/components/parameters/pageSize' }
+      responses:
+        '200':
+          description: A page of receipts
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, page]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/EvidenceReceipt' }
+                  page: { $ref: '#/components/schemas/PageInfo' }
+        '400': { $ref: '#/components/responses/BadQuery' }
+  /receipts/verify:
+    get:
+      tags: [Evidence]
+      operationId: verifyReceiptChain
+      summary: Verify the receipt hash chain
+      description: Recomputes every receipt hash and its link to the previous one.
+      responses:
+        '200':
+          description: Verification result
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, length, headHash]
+                properties:
+                  ok: { type: boolean }
+                  length: { type: integer, minimum: 0 }
+                  headHash:
+                    type: [string, 'null']
+                    description: Hash of the newest receipt, null when the ledger is empty.
+                  brokenAt:
+                    type: integer
+                    description: Index of the first receipt that fails verification. Present only when ok is false.
+  /receipts/{id}:
+    get:
+      tags: [Evidence]
+      operationId: getReceipt
+      summary: One evidence receipt
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: The receipt
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EvidenceReceipt' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /exceptions:
+    get:
+      tags: [Operations]
+      operationId: listExceptions
+      summary: Open exceptions at the snapshot time
+      description: Ordered by `openedAt`, then `id`.
+      parameters:
+        - name: kind
+          in: query
+          schema: { $ref: '#/components/schemas/ExceptionKind' }
+        - name: authorityId
+          in: query
+          schema: { type: string }
+        - name: shipmentId
+          in: query
+          schema: { type: string }
+        - name: minEscalation
+          in: query
+          schema: { type: integer, minimum: 0 }
+        - { $ref: '#/components/parameters/page' }
+        - { $ref: '#/components/parameters/pageSize' }
+      responses:
+        '200':
+          description: A page of exceptions
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, page]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/ExceptionItem' }
+                  page: { $ref: '#/components/schemas/PageInfo' }
+        '400': { $ref: '#/components/responses/BadQuery' }
+  /kpis:
+    get:
+      tags: [Operations]
+      operationId: getKpis
+      summary: Simulated release-time KPIs
+      description: Output of the engine's `computeKpis` over shipments cleared by the snapshot time. These are simulated, not measured.
+      responses:
+        '200':
+          description: KPIs
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [snapshotAt, simulated, kpis]
+                properties:
+                  snapshotAt: { type: string, format: date-time }
+                  simulated: { type: boolean, const: true }
+                  kpis: { $ref: '#/components/schemas/Kpis' }
+  /assessments:
+    post:
+      tags: [Adapter]
+      operationId: createAssessment
+      summary: Assess a declaration without persisting it (adapter endpoint)
+      description: |
+        An ATLP/MAMAR adapter maps a filing to `AssessmentRequest` and posts it. Madoun derives
+        requirements, checks evidence against the current receipts, builds the review plan and
+        assesses risk. **Nothing is stored** and nothing is written back to any declaration:
+        `persisted` is always `false`. Internal ids are generated by Madoun and are not stable.
+        Assessments are evaluated at the dataset snapshot time, not the wall clock.
+        Validation is strict: unknown fields are rejected.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AssessmentRequest' }
+            example:
+              declarationRef: DEC-26-102590
+              mode: air
+              carrier: Skyroute Cargo
+              conveyance: FL145
+              entryPoint: Air Cargo Terminal
+              eta: '2026-10-08T22:00:00.000Z'
+              filedAt: '2026-10-07T21:00:00.000Z'
+              traderId: tr-03
+              forwarderId: fw-oasis
+              invoiceRef: INV-22822
+              incoterm: FOB
+              currency: AED
+              totalValue: 163879
+              submitted: [commercial-invoice, packing-list, transport-document]
+              consignments:
+                - transportDocRef: AWB-825438
+                  containerIds: []
+                  items:
+                    - { hsCode: '30043200', description: Hormonal medicaments, category: pharma, origin: DE, value: 88772, quantity: 710, packages: 21, flags: [controlled, cold-chain] }
+                    - { hsCode: '30049000', description: Packaged medicaments, category: pharma, origin: IN, value: 75107, quantity: 389, packages: 10, flags: [cold-chain] }
+      responses:
+        '200':
+          description: Assessment (not persisted)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AssessmentResponse' }
+        '400':
+          description: Body is not valid JSON (`invalid_json`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorShape' }
+        '413':
+          description: Body larger than 262144 bytes (`payload_too_large`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorShape' }
+        '415':
+          description: Content-Type is not JSON (`unsupported_media_type`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorShape' }
+        '422':
+          description: Body parsed but failed validation. `error.details` lists every problem.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ValidationError' }
+components:
+  parameters:
+    page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    pageSize:
+      name: pageSize
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 25 }
+  responses:
+    NotFound:
+      description: No such resource (`not_found`)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorShape' }
+    BadQuery:
+      description: A query parameter has an invalid value (`invalid_query`)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorShape' }
+  schemas:
+    Lane: { type: string, enum: [green, amber, red] }
+    Pathway: { type: string, enum: [pre-arrival-release, targeted-checks, physical-inspection] }
+    EvidenceType:
+      type: string
+      enum: [commercial-invoice, packing-list, transport-document, certificate-of-origin, health-certificate, lab-result, conformity-certificate, type-approval, import-permit, safety-data-sheet, inspection-result, release-order]
+    ExceptionKind:
+      type: string
+      enum: [idle-review, missing-evidence, evidence-expiring, authority-conflict, unowned-handoff]
+    GoodsCategory:
+      type: string
+      enum: [food, electronics, wireless, pharma, medical-device, chemicals, textiles, machinery, cosmetics, general]
+    PageInfo:
+      type: object
+      required: [page, pageSize, total, totalPages]
+      properties:
+        page: { type: integer }
+        pageSize: { type: integer }
+        total: { type: integer }
+        totalPages: { type: integer }
+    ErrorShape:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              description: Machine-readable. One of not_found, invalid_query, invalid_json, unsupported_media_type, payload_too_large, validation_failed, unauthorized, internal_error.
+            message: { type: string }
+            details: {}
+    ValidationIssue:
+      type: object
+      required: [path, message]
+      properties:
+        path:
+          type: string
+          description: "Location in the request body, e.g. consignments[0].items[1].hsCode. `$` means the whole body."
+        message: { type: string }
+    ValidationError:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, details]
+          properties:
+            code: { type: string, const: validation_failed }
+            message: { type: string }
+            details:
+              type: array
+              items: { $ref: '#/components/schemas/ValidationIssue' }
+    Health:
+      type: object
+      required: [status, apiVersion, synthetic, auth, dataset]
+      properties:
+        status: { type: string, const: ok }
+        apiVersion: { type: string }
+        synthetic: { type: boolean, const: true }
+        auth: { type: string }
+        dataset:
+          type: object
+          required: [seed, snapshotAt, shipments, receipts, openExceptions, traders, authorities, requirements]
+          properties:
+            seed: { type: integer }
+            snapshotAt: { type: string, format: date-time }
+            shipments: { type: integer }
+            receipts: { type: integer }
+            openExceptions: { type: integer }
+            traders: { type: integer }
+            authorities: { type: integer }
+            requirements: { type: integer }
+    ShipmentSummary:
+      type: object
+      required: [id, declarationRef, mode, entryPoint, filedAt, eta, traderId, lane, status, totalValue, currency, itemCount]
+      properties:
+        id: { type: string }
+        declarationRef: { type: string }
+        mode: { type: string, enum: [sea, air, land] }
+        entryPoint: { type: string }
+        filedAt: { type: string, format: date-time }
+        eta: { type: string, format: date-time }
+        traderId: { type: string }
+        traderName: { type: string }
+        lane: { $ref: '#/components/schemas/Lane' }
+        pathway: { $ref: '#/components/schemas/Pathway' }
+        status: { type: string, enum: [in-flight, cleared] }
+        clearedAt: { type: string, format: date-time }
+        preArrival: { type: boolean }
+        totalValue: { type: number }
+        currency: { type: string, const: AED }
+        itemCount: { type: integer }
+    GoodsItem:
+      type: object
+      required: [id, hsCode, description, category, origin, value, quantity, packages, flags]
+      properties:
+        id: { type: string }
+        hsCode: { type: string, pattern: '^\d{6,12}$' }
+        description: { type: string }
+        descriptionAr: { type: string }
+        category: { $ref: '#/components/schemas/GoodsCategory' }
+        origin: { type: string, pattern: '^[A-Z]{2}$' }
+        value: { type: number, description: AED }
+        quantity: { type: integer }
+        packages: { type: integer }
+        flags: { type: array, items: { type: string } }
+    Shipment:
+      type: object
+      description: The declaration as Madoun holds it. Simplified WCO-style vocabulary.
+      required: [id, declarationRef, mode, carrier, conveyance, entryPoint, eta, filedAt, traderId, forwarderId, invoiceRef, incoterm, currency, totalValue, submitted, consignments]
+      properties:
+        id: { type: string }
+        declarationRef: { type: string }
+        mode: { type: string, enum: [sea, air, land] }
+        carrier: { type: string }
+        carrierAr: { type: string }
+        conveyance: { type: string }
+        conveyanceAr: { type: string }
+        entryPoint: { type: string }
+        eta: { type: string, format: date-time }
+        filedAt: { type: string, format: date-time }
+        traderId: { type: string }
+        forwarderId: { type: string }
+        invoiceRef: { type: string }
+        incoterm: { type: string }
+        currency: { type: string, const: AED }
+        totalValue: { type: number }
+        submitted:
+          type: array
+          description: Evidence types already submitted with the filing (claims only, no documents).
+          items: { $ref: '#/components/schemas/EvidenceType' }
+        consignments:
+          type: array
+          items:
+            type: object
+            required: [id, transportDocRef, containerIds, items]
+            properties:
+              id: { type: string }
+              transportDocRef: { type: string }
+              containerIds: { type: array, items: { type: string } }
+              items:
+                type: array
+                items: { $ref: '#/components/schemas/GoodsItem' }
+    Trader:
+      type: object
+      required: [id, name, nameAr, aeo, complianceScore, pastFindings]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        nameAr: { type: string }
+        aeo: { type: boolean }
+        complianceScore: { type: number, minimum: 0, maximum: 100 }
+        pastFindings: { type: integer }
+    AssessmentRequest:
+      type: object
+      description: >
+        A declaration as an ATLP/MAMAR adapter would map it. No internal ids: Madoun generates them.
+        Unknown fields are rejected. Also published as docs/schemas/assessment-request.schema.json.
+      additionalProperties: false
+      required: [declarationRef, mode, carrier, conveyance, entryPoint, eta, traderId, forwarderId, invoiceRef, incoterm, currency, totalValue, submitted, consignments]
+      properties:
+        declarationRef: { type: string, minLength: 1, maxLength: 64 }
+        mode: { type: string, enum: [sea, air, land] }
+        carrier: { type: string, minLength: 1, maxLength: 200 }
+        carrierAr: { type: string, maxLength: 300 }
+        conveyance: { type: string, minLength: 1, maxLength: 200 }
+        conveyanceAr: { type: string, maxLength: 300 }
+        entryPoint: { type: string, minLength: 1, maxLength: 200 }
+        eta: { type: string, format: date-time, description: Must not be earlier than filedAt. }
+        filedAt: { type: string, format: date-time, description: Defaults to the dataset snapshot time. }
+        traderId: { type: string, description: Must be a trader known to Madoun. }
+        forwarderId: { type: string, description: Must be a forwarder known to Madoun. }
+        invoiceRef: { type: string, minLength: 1, maxLength: 64 }
+        incoterm: { type: string, minLength: 1, maxLength: 8 }
+        currency: { type: string, const: AED }
+        totalValue: { type: number, minimum: 0, description: Must equal the sum of item values. }
+        submitted:
+          type: array
+          uniqueItems: true
+          items: { $ref: '#/components/schemas/EvidenceType' }
+        consignments:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            additionalProperties: false
+            required: [transportDocRef, containerIds, items]
+            properties:
+              transportDocRef: { type: string, minLength: 1, maxLength: 64 }
+              containerIds:
+                type: array
+                items: { type: string, pattern: '^[A-Z]{4}\d{7}$' }
+              items:
+                type: array
+                minItems: 1
+                items:
+                  type: object
+                  additionalProperties: false
+                  required: [hsCode, description, category, origin, value, quantity, packages]
+                  properties:
+                    hsCode: { type: string, pattern: '^\d{6,12}$' }
+                    description: { type: string, minLength: 1, maxLength: 300 }
+                    descriptionAr: { type: string, maxLength: 300 }
+                    category: { $ref: '#/components/schemas/GoodsCategory' }
+                    origin: { type: string, pattern: '^[A-Z]{2}$' }
+                    value: { type: number, minimum: 0 }
+                    quantity: { type: integer, minimum: 1 }
+                    packages: { type: integer, minimum: 1 }
+                    flags:
+                      type: array
+                      items: { type: string, pattern: '^[a-z0-9-]{1,40}$' }
+    EvidenceReceipt:
+      type: object
+      description: A claim that an authority verified something, with scope, validity and a hash link. Not the document itself. Also published as docs/schemas/evidence-receipt.schema.json.
+      required: [id, type, subjectRef, summary, summaryAr, issuer, verifiedBy, method, scope, validFrom, validUntil, status, sharedWith, hash, prevHash, reuseLog]
+      properties:
+        id: { type: string }
+        type: { $ref: '#/components/schemas/EvidenceType' }
+        subjectRef: { type: string }
+        summary: { type: string }
+        summaryAr: { type: string }
+        issuer: { type: string }
+        verifiedBy: { type: string, description: Authority id. }
+        method: { type: string, enum: [document-check, lab-test, system-lookup, officer-inspection, robotic-inspection, scanner-review] }
+        scope:
+          type: object
+          required: [level]
+          properties:
+            level: { type: string, enum: [shipment, trader, trader-product] }
+            shipmentId: { type: string }
+            traderId: { type: string }
+            hsChapters: { type: array, items: { type: string } }
+            hs6: { type: array, items: { type: string } }
+            origins: { type: array, items: { type: string } }
+        validFrom: { type: string, format: date-time }
+        validUntil: { type: string, format: date-time }
+        status: { type: string, enum: [verified, pending, revoked] }
+        revokedReason: { type: string }
+        sharedWith:
+          oneOf:
+            - { type: string, const: all }
+            - { type: array, items: { type: string } }
+        hash: { type: string, pattern: '^[0-9a-f]{64}$' }
+        prevHash: { type: string, pattern: '^[0-9a-f]{64}$' }
+        reuseLog:
+          type: array
+          items:
+            type: object
+            required: [shipmentId, acceptedByAuthorityId, at, requirementId]
+            properties:
+              shipmentId: { type: string }
+              acceptedByAuthorityId: { type: string }
+              at: { type: string, format: date-time }
+              requirementId: { type: string }
+    RequirementInstance:
+      type: object
+      required: [requirementId, authorityId, itemIds]
+      properties:
+        requirementId: { type: string }
+        authorityId: { type: string }
+        label: { type: string }
+        itemIds: { type: array, items: { type: string } }
+    EvidenceCheck:
+      type: object
+      required: [requirementId, verdict, reason, reasonAr]
+      properties:
+        requirementId: { type: string }
+        verdict:
+          type: string
+          enum: [satisfied-own, satisfied-reuse, missing, expired, expires-before-eta, scope-partial, not-shared, revoked, pending, awaiting-review]
+        receiptId: { type: string }
+        reusedFrom: { type: string }
+        uncoveredItemIds: { type: array, items: { type: string } }
+        reason: { type: string }
+        reasonAr: { type: string }
+    ReviewPlan:
+      type: object
+      required: [reviews, layers, criticalPath, sequentialHours, parallelHours, hoursSaved, duplicateChecksAvoided]
+      properties:
+        reviews:
+          type: array
+          items:
+            type: object
+            required: [requirementId, authorityId, dependsOn, mode, hours, layer, startHour, endHour, onCriticalPath, blocksRelease, verdict]
+            properties:
+              requirementId: { type: string }
+              authorityId: { type: string }
+              dependsOn: { type: array, items: { type: string } }
+              mode: { type: string, enum: [full-review, accept-receipt, no-action] }
+              hours: { type: number }
+              layer: { type: integer }
+              startHour: { type: number }
+              endHour: { type: number }
+              onCriticalPath: { type: boolean }
+              blocksRelease: { type: boolean }
+              verdict: { type: string }
+              reliesOn: { type: array, items: { type: string } }
+        layers: { type: array, items: { type: array, items: { type: string } } }
+        criticalPath: { type: array, items: { type: string } }
+        sequentialHours: { type: number, description: "Today's process, modelled." }
+        parallelHours: { type: number, description: Parallel layers with reuse, modelled. }
+        hoursSaved: { type: number }
+        duplicateChecksAvoided: { type: integer }
+    RiskAssessment:
+      type: object
+      required: [shipmentId, lane, perAuthority, conflicts, reasons, recommendedChecks, pathway, auditFlag, assessedAt]
+      properties:
+        shipmentId: { type: string }
+        lane: { $ref: '#/components/schemas/Lane' }
+        perAuthority:
+          type: array
+          items:
+            type: object
+            required: [authorityId, score, lane, signals]
+            properties:
+              authorityId: { type: string }
+              score: { type: number }
+              lane: { $ref: '#/components/schemas/Lane' }
+              signals:
+                type: array
+                items:
+                  type: object
+                  required: [authorityId, factor, key, points, reason, reasonAr]
+                  properties:
+                    authorityId: { type: string }
+                    factor: { type: string, enum: [goods-category, origin, value, trader-history, authorised-operator, transport-mode, documentation-completeness, prior-findings] }
+                    key: { type: string }
+                    points: { type: number }
+                    reason: { type: string }
+                    reasonAr: { type: string }
+        conflicts:
+          type: array
+          items:
+            type: object
+            required: [authorities, lanes, rule, ruleAr]
+            properties:
+              authorities: { type: array, items: { type: string } }
+              lanes: { type: array, items: { $ref: '#/components/schemas/Lane' } }
+              rule: { type: string }
+              ruleAr: { type: string }
+        reasons:
+          type: array
+          description: Plain-language reasons, strongest first.
+          items:
+            type: object
+            required: [text, textAr, points, authorityId]
+            properties:
+              text: { type: string }
+              textAr: { type: string }
+              points: { type: number }
+              authorityId: { type: string }
+        recommendedChecks:
+          type: array
+          items:
+            type: object
+            required: [text, textAr, authorityId]
+            properties:
+              text: { type: string }
+              textAr: { type: string }
+              authorityId: { type: string }
+        pathway: { $ref: '#/components/schemas/Pathway' }
+        auditFlag: { type: boolean, description: Post-clearance audit flag. }
+        assessedAt: { type: string, format: date-time }
+    ExceptionItem:
+      type: object
+      required: [id, shipmentId, kind, ownerId, openedAt, clockHours, escalationLevel, state, detail, detailAr]
+      properties:
+        id: { type: string }
+        shipmentId: { type: string }
+        kind: { $ref: '#/components/schemas/ExceptionKind' }
+        requirementId: { type: string }
+        authorityId: { type: string }
+        ownerId: { type: string }
+        openedAt: { type: string, format: date-time }
+        clockHours: { type: number }
+        escalationLevel: { type: integer }
+        state: { type: string, enum: [open, resolved] }
+        resolvedAt: { type: string, format: date-time }
+        detail: { type: string }
+        detailAr: { type: string }
+    AuditEntry:
+      type: object
+      required: [at, actor, action, actionAr]
+      properties:
+        at: { type: string, format: date-time }
+        actor: { type: string }
+        action: { type: string }
+        actionAr: { type: string }
+    ShipmentFileResponse:
+      type: object
+      required: [evaluatedAt, shipment, trader, file, requirements, evidenceChecks, reviewPlan, assessment, exceptions, auditTrail]
+      properties:
+        evaluatedAt: { type: string, format: date-time }
+        shipment: { $ref: '#/components/schemas/Shipment' }
+        trader: { $ref: '#/components/schemas/Trader' }
+        file:
+          type: object
+          description: Lifecycle state from the event log. `inspectionTask`, `inspectionResult` and `outcome` appear only when they happened and are not further specified here.
+          required: [registeredAt, lane, reviews]
+          properties:
+            registeredAt: { type: string, format: date-time }
+            lane: { $ref: '#/components/schemas/Lane' }
+            override:
+              type: object
+              properties:
+                lane: { $ref: '#/components/schemas/Lane' }
+                officerId: { type: string }
+                reason: { type: string }
+                at: { type: string, format: date-time }
+            reviews:
+              type: object
+              additionalProperties:
+                type: object
+                required: [requirementId, authorityId]
+                properties:
+                  requirementId: { type: string }
+                  authorityId: { type: string }
+                  startedAt: { type: string, format: date-time }
+                  startedBy: { type: string }
+                  completedAt: { type: string, format: date-time }
+                  result: { type: string, enum: [approved, rejected, needs-info] }
+                  note: { type: string }
+            inspectionTask: { type: object }
+            inspectionResult: { type: object }
+            outcome: { type: object }
+            cleared:
+              type: object
+              properties:
+                at: { type: string, format: date-time }
+                preArrival: { type: boolean }
+        requirements:
+          type: array
+          items: { $ref: '#/components/schemas/RequirementInstance' }
+        evidenceChecks:
+          type: array
+          items: { $ref: '#/components/schemas/EvidenceCheck' }
+        reviewPlan: { $ref: '#/components/schemas/ReviewPlan' }
+        assessment: { $ref: '#/components/schemas/RiskAssessment' }
+        exceptions:
+          type: array
+          items: { $ref: '#/components/schemas/ExceptionItem' }
+        auditTrail:
+          type: array
+          items: { $ref: '#/components/schemas/AuditEntry' }
+    AssessmentResponse:
+      type: object
+      required: [persisted, evaluatedAt, shipment, requirements, evidenceChecks, reviewPlan, assessment]
+      properties:
+        persisted: { type: boolean, const: false }
+        evaluatedAt: { type: string, format: date-time }
+        shipment: { $ref: '#/components/schemas/Shipment' }
+        requirements:
+          type: array
+          items: { $ref: '#/components/schemas/RequirementInstance' }
+        evidenceChecks:
+          type: array
+          items: { $ref: '#/components/schemas/EvidenceCheck' }
+        reviewPlan: { $ref: '#/components/schemas/ReviewPlan' }
+        assessment: { $ref: '#/components/schemas/RiskAssessment' }
+    Kpis:
+      type: object
+      description: Simulated figures from the engine's computeKpis.
+      required: [shipments, todayPreArrivalPct, madounPreArrivalPct, todayMedianHours, madounMedianHours, todayP90Hours, madounP90Hours, medianReductionPct, repeatChecksAvoided, todayInactionHours, madounInactionHours, byLane]
+      properties:
+        shipments: { type: integer }
+        todayPreArrivalPct: { type: number }
+        madounPreArrivalPct: { type: number }
+        todayMedianHours: { type: number }
+        madounMedianHours: { type: number }
+        todayP90Hours: { type: number }
+        madounP90Hours: { type: number }
+        medianReductionPct: { type: number }
+        repeatChecksAvoided: { type: integer }
+        todayInactionHours: { type: number }
+        madounInactionHours: { type: number }
+        byLane:
+          type: object
+          required: [green, amber, red]
+          additionalProperties:
+            type: object
+            required: [count, todayMedian, madounMedian, madounPreArrivalPct]
+            properties:
+              count: { type: integer }
+              todayMedian: { type: number }
+              madounMedian: { type: number }
+              madounPreArrivalPct: { type: number }

@@ -20,6 +20,20 @@ import type {
 } from './types';
 import { allItems } from './types';
 
+const CATEGORY_AR: Record<string, string> = {
+  food: 'الأغذية', electronics: 'الإلكترونيات', wireless: 'الأجهزة اللاسلكية', pharma: 'الأدوية', 'medical-device': 'الأجهزة الطبية',
+  chemicals: 'المواد الكيميائية', textiles: 'المنسوجات', machinery: 'الآلات', cosmetics: 'مستحضرات التجميل', general: 'البضائع العامة',
+};
+
+/** Arabic country name for an ISO 3166-1 alpha-2 code; falls back to the code when the runtime has no Arabic region data. */
+function countryAr(code: string): string {
+  try {
+    return new Intl.DisplayNames('ar', { type: 'region' }).of(code) ?? code;
+  } catch {
+    return code;
+  }
+}
+
 export interface RiskContext {
   trader: Trader;
   /** Origins this trader has shipped from before. */
@@ -78,7 +92,7 @@ export function assessRisk(shipment: Shipment, ctx: RiskContext): RiskAssessment
       signals.push(
         sig('adc', 'goods-category', `goods-category:${it.category}`, pts,
           `Goods category "${it.category}" is subject to heightened customs controls`,
-          `فئة البضائع "${it.category}" تخضع لضوابط جمركية مشددة`, o),
+          `فئة البضائع "${CATEGORY_AR[it.category] ?? it.category}" تخضع لضوابط جمركية مشددة`, o),
       );
   }
 
@@ -90,7 +104,7 @@ export function assessRisk(shipment: Shipment, ctx: RiskContext): RiskAssessment
       signals.push(
         sig('adc', 'value', 'value:undervalued', 18,
           `Declared unit value is ${Math.round(ratio * 100)}% of the reference for "${it.description}"`,
-          `القيمة المصرح بها للوحدة ${Math.round(ratio * 100)}٪ من المرجع لـ "${it.description}"`, o),
+          `القيمة المصرح بها للوحدة ${Math.round(ratio * 100)}٪ من المرجع لـ "${it.descriptionAr ?? it.description}"`, o),
       );
       break;
     }
@@ -98,7 +112,7 @@ export function assessRisk(shipment: Shipment, ctx: RiskContext): RiskAssessment
       signals.push(
         sig('adc', 'value', 'value:overvalued', 8,
           `Declared unit value is ${ratio.toFixed(1)}× the reference for "${it.description}"`,
-          `القيمة المصرح بها للوحدة ${ratio.toFixed(1)} ضعف المرجع لـ "${it.description}"`, o),
+          `القيمة المصرح بها للوحدة ${ratio.toFixed(1)} ضعف المرجع لـ "${it.descriptionAr ?? it.description}"`, o),
       );
       break;
     }
@@ -123,7 +137,7 @@ export function assessRisk(shipment: Shipment, ctx: RiskContext): RiskAssessment
 
   const newOrigins = [...new Set(items.map((i) => i.origin))].filter((c) => !ctx.knownOrigins.includes(c));
   if (newOrigins.length)
-    signals.push(sig('adc', 'origin', 'origin:first-time', 5, `First shipment from ${newOrigins.join(', ')} for this trader`, `أول شحنة من ${newOrigins.join('، ')} لهذا المستورد`, o));
+    signals.push(sig('adc', 'origin', 'origin:first-time', 5, `First shipment from ${newOrigins.join(', ')} for this trader`, `أول شحنة من ${newOrigins.map(countryAr).join('، ')} لهذا المستورد`, o));
 
   if (shipment.mode === 'land')
     signals.push(sig('adc', 'transport-mode', 'transport-mode:land', 3, 'Road consignment: fewer pre-arrival data points', 'شحنة برية: بيانات مسبقة أقل', o));
