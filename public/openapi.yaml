@@ -135,7 +135,11 @@ paths:
       tags: [Evidence]
       operationId: verifyReceiptChain
       summary: Verify the receipt hash chain
-      description: Recomputes every receipt hash and its link to the previous one.
+      description: >-
+        Recomputes every receipt hash and its link to the previous one, and verifies each receipt's
+        Ed25519 signature against the public key of the authority that verified it. The mock signs with
+        public, reproducible demo keys (demoKeys is always true here), so the signatures demonstrate
+        the mechanism, not the signer.
       responses:
         '200':
           description: Verification result
@@ -143,9 +147,18 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [ok, length, headHash]
+                required: [ok, length, headHash, signatures]
                 properties:
-                  ok: { type: boolean }
+                  ok: { type: boolean, description: Hash chain intact. }
+                  signatures:
+                    type: object
+                    required: [algorithm, valid, signed, total, demoKeys]
+                    properties:
+                      algorithm: { type: string, enum: [Ed25519] }
+                      valid: { type: boolean, description: Chain intact and every receipt validly signed by its custodian. }
+                      signed: { type: integer, minimum: 0 }
+                      total: { type: integer, minimum: 0 }
+                      demoKeys: { type: boolean, description: True when signed with the public demo keyring. }
                   length: { type: integer, minimum: 0 }
                   headHash:
                     type: [string, 'null']
@@ -493,6 +506,7 @@ components:
         consignments:
           type: array
           minItems: 1
+          maxItems: 20
           items:
             type: object
             additionalProperties: false
@@ -501,10 +515,12 @@ components:
               transportDocRef: { type: string, minLength: 1, maxLength: 64 }
               containerIds:
                 type: array
+                maxItems: 100
                 items: { type: string, pattern: '^[A-Z]{4}\d{7}$' }
               items:
                 type: array
                 minItems: 1
+                maxItems: 200
                 items:
                   type: object
                   additionalProperties: false

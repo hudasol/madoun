@@ -9,6 +9,8 @@ export const EVIDENCE_TYPES: readonly EvidenceType[] = [
   'commercial-invoice', 'packing-list', 'transport-document', 'certificate-of-origin', 'health-certificate', 'lab-result',
   'conformity-certificate', 'type-approval', 'import-permit', 'safety-data-sheet', 'inspection-result', 'release-order',
 ];
+/** Upper bounds per declaration. Real declarations are far smaller; these keep one request cheap to evaluate. */
+export const LIMITS = { consignments: 20, itemsPerConsignment: 200, containersPerConsignment: 100 } as const;
 export const MODES: readonly TransportMode[] = ['sea', 'air', 'land'];
 
 export interface ValidationContext {
@@ -118,6 +120,7 @@ export function validateAssessmentRequest(input: unknown, ctx: ValidationContext
   let itemValueSum = 0;
   if (input.consignments === undefined) add('consignments', 'Required.');
   else if (!Array.isArray(input.consignments) || input.consignments.length === 0) add('consignments', 'Must be a non-empty array.');
+  else if (input.consignments.length > LIMITS.consignments) add('consignments', `At most ${LIMITS.consignments} consignments per declaration.`);
   else {
     input.consignments.forEach((c, ci) => {
       const cp = `consignments[${ci}]`;
@@ -127,6 +130,7 @@ export function validateAssessmentRequest(input: unknown, ctx: ValidationContext
       const containerIds: string[] = [];
       if (c.containerIds === undefined) add(`${cp}.containerIds`, 'Required (use [] for none).');
       else if (!Array.isArray(c.containerIds)) add(`${cp}.containerIds`, 'Must be an array of strings.');
+      else if (c.containerIds.length > LIMITS.containersPerConsignment) add(`${cp}.containerIds`, `At most ${LIMITS.containersPerConsignment} containers per consignment.`);
       else c.containerIds.forEach((x, xi) => {
         if (typeof x !== 'string' || !/^[A-Z]{4}\d{7}$/.test(x)) add(`${cp}.containerIds[${xi}]`, 'Must match ISO 6346 shape: four capital letters then seven digits.');
         else containerIds.push(x);
@@ -134,6 +138,7 @@ export function validateAssessmentRequest(input: unknown, ctx: ValidationContext
       const items: Shipment['consignments'][number]['items'] = [];
       if (c.items === undefined) add(`${cp}.items`, 'Required.');
       else if (!Array.isArray(c.items) || c.items.length === 0) add(`${cp}.items`, 'Must be a non-empty array.');
+      else if (c.items.length > LIMITS.itemsPerConsignment) add(`${cp}.items`, `At most ${LIMITS.itemsPerConsignment} items per consignment.`);
       else c.items.forEach((it, ii) => {
         const ip = `${cp}.items[${ii}]`;
         if (!isObj(it)) { add(ip, 'Must be an object.'); return; }

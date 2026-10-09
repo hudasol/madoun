@@ -15,8 +15,11 @@ export async function POST(request: Request) {
     if (!ct.toLowerCase().includes('json')) {
       return errorResponse(415, 'unsupported_media_type', "Content-Type must be 'application/json'.");
     }
+    // Reject on the declared size before reading anything, then re-check the bytes actually received.
+    const declared = Number(request.headers.get('content-length') ?? 0);
+    if (declared > MAX_BODY_BYTES) return errorResponse(413, 'payload_too_large', `Body must be at most ${MAX_BODY_BYTES} bytes.`);
     const text = await request.text();
-    if (text.length > MAX_BODY_BYTES) return errorResponse(413, 'payload_too_large', `Body must be at most ${MAX_BODY_BYTES} bytes.`);
+    if (new TextEncoder().encode(text).length > MAX_BODY_BYTES) return errorResponse(413, 'payload_too_large', `Body must be at most ${MAX_BODY_BYTES} bytes.`);
     let body: unknown;
     try {
       body = JSON.parse(text);

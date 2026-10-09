@@ -37,10 +37,56 @@ export function computeReceiptHash(d: ReceiptDraft, prevHash: string): string {
 }
 
 /** Append a receipt to the ledger and link it to the previous receipt's hash. */
+/** Builds the next receipt in a chain whose current head hash is `prev` (undefined for an empty ledger). */
+export function makeReceipt(prev: string | undefined, draft: ReceiptDraft): EvidenceReceipt {
+  const prevHash = prev ?? GENESIS_HASH;
+  return { ...draft, prevHash, hash: computeReceiptHash(draft, prevHash), reuseLog: [] };
+}
+
 export function appendReceipt(ledger: EvidenceReceipt[], draft: ReceiptDraft): EvidenceReceipt[] {
-  const prevHash = ledger.length ? ledger[ledger.length - 1].hash : GENESIS_HASH;
-  const receipt: EvidenceReceipt = { ...draft, prevHash, hash: computeReceiptHash(draft, prevHash), reuseLog: [] };
-  return [...ledger, receipt];
+  return [...ledger, makeReceipt(ledger.length ? ledger[ledger.length - 1].hash : undefined, draft)];
+}
+
+/**
+ * Candidate lookup by (type, shipment) and (type, trader). The index is cached per ledger array and
+ * extended when the array grows (receipts are append-only; positions never change), so a lookup is
+ * proportional to the matches, not to the size of the ledger.
+ */
+interface LedgerIndex {
+  len: number;
+  byShipment: Map<string, number[]>;
+  byTrader: Map<string, number[]>;
+}
+const INDEX = new WeakMap<EvidenceReceipt[], LedgerIndex>();
+
+function ledgerIndex(receipts: EvidenceReceipt[]): LedgerIndex {
+  let ix = INDEX.get(receipts);
+  if (!ix) {
+    ix = { len: 0, byShipment: new Map(), byTrader: new Map() };
+    INDEX.set(receipts, ix);
+  }
+  for (; ix.len < receipts.length; ix.len++) {
+    const r = receipts[ix.len];
+    const key = r.scope.level === 'shipment' ? r.scope.shipmentId : r.scope.traderId;
+    if (key === undefined) continue;
+    const map = r.scope.level === 'shipment' ? ix.byShipment : ix.byTrader;
+    const k = `${r.type}|${key}`;
+    const list = map.get(k);
+    if (list) list.push(ix.len);
+    else map.set(k, [ix.len]);
+  }
+  return ix;
+}
+
+function candidatesFor(receipts: EvidenceReceipt[], type: EvidenceType, shipment: Shipment): EvidenceReceipt[] {
+  const ix = ledgerIndex(receipts);
+  const a = ix.byShipment.get(`${type}|${shipment.id}`) ?? [];
+  const b = ix.byTrader.get(`${type}|${shipment.traderId}`) ?? [];
+  // Merge two ascending position lists so the result keeps ledger order, as the old filter did.
+  const out: EvidenceReceipt[] = [];
+  let i = 0, j = 0;
+  while (i < a.length || j < b.length) out.push(receipts[j >= b.length || (i < a.length && a[i] < b[j]) ? a[i++] : b[j++]]);
+  return out;
 }
 
 export function verifyChain(ledger: EvidenceReceipt[]): { valid: boolean; brokenAt?: number } {
@@ -118,11 +164,7 @@ function evaluateType(
 ): TypeResult {
   const items = shipment.consignments.flatMap((c) => c.items).filter((i) => inst.itemIds.includes(i.id));
   // Only receipts that concern this shipment or this trader can be candidates.
-  const candidates = receipts.filter(
-    (r) =>
-      r.type === type &&
-      (r.scope.level === 'shipment' ? r.scope.shipmentId === shipment.id : r.scope.traderId === shipment.traderId),
-  );
+  const candidates = candidatesFor(receipts, type, shipment);
 
   if (candidates.length === 0) {
     return { verdict: shipment.submitted.includes(type) ? 'awaiting-review' : 'missing', receiptIds: [] };

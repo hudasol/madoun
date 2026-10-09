@@ -2,7 +2,7 @@ import type { Directory } from './directory';
 import { detectExceptions } from './exceptions';
 import { createInspectionTask, outcomeFromInspection, resultToReceiptDraft, simulateInspectionCell, type Truth } from './inspection';
 import { planShipment } from './plan';
-import { apply, emptyWorld, replay } from './reducer';
+import { WorldBuilder, emptyWorld, replay } from './reducer';
 import { makeRng } from './rng';
 import { addHours, ms, round1 } from './time';
 import type {
@@ -71,13 +71,14 @@ const REUSABLE: Partial<Record<EvidenceType, number>> = {
 export function simulate(input: SimInput): SimOutput {
   const { directory: dir, shipments, truth } = input;
   const rng = makeRng(input.seed + 17);
-  let world: World = { ...emptyWorld(), weightOverrides: input.weightOverrides ?? {} };
+  const builder = new WorldBuilder({ ...emptyWorld(), weightOverrides: input.weightOverrides ?? {} });
+  const world = builder.world; // mutated in place by the builder; planShipment only reads it
   const events: MadounEvent[] = [];
   const results: ShipmentSimResult[] = [];
 
   const push = (ev: MadounEvent) => {
     events.push(ev);
-    world = apply(world, ev);
+    builder.apply(ev);
   };
 
   for (const shipment of shipments) {

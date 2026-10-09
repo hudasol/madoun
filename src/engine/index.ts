@@ -14,3 +14,5 @@ export * from './learning';
 export * from './inspection';
 export * from './metrics';
 export * from './simulate';
+export * from './sign';
+export * from './validate';
