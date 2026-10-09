@@ -1,0 +1,237 @@
+@import 'tailwindcss';
+
+/* ------------------------------------------------------------------
+   Design tokens.
+   Dark harbour slate by default; a cool-paper light theme follows the OS
+   unless the user picks one. Lane colours carry lane meaning only.
+   The stamp colour is reserved for verified evidence receipts.
+   ------------------------------------------------------------------ */
+:root {
+  --canvas: #0e1a22;
+  --panel: #15252f;
+  --panel-2: #1b2f3b;
+  --line: #2b4251;
+  --ink: #ece9e1;
+  --muted: #8fa3ae;
+  --faint: #5e7482;
+  --green: #4dbe8a;
+  --amber: #efa73a;
+  --red: #e4564c;
+  --stamp: #86a2ff;
+  --focus: #ffd166;
+  --font-ui: 'Space Grotesk Variable', 'IBM Plex Sans Arabic', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) {
+    --canvas: #edf1f3;
+    --panel: #ffffff;
+    --panel-2: #e3eaee;
+    --line: #c5d2da;
+    --ink: #11212b;
+    --muted: #4f6573;
+    --faint: #7b8f9b;
+    --green: #1e8a5b;
+    --amber: #a86a06;
+    --red: #c23a31;
+    --stamp: #3b56c8;
+    --focus: #8a5a00;
+    color-scheme: light;
+  }
+}
+
+:root[data-theme='light'] {
+  --canvas: #edf1f3;
+  --panel: #ffffff;
+  --panel-2: #e3eaee;
+  --line: #c5d2da;
+  --ink: #11212b;
+  --muted: #4f6573;
+  --faint: #7b8f9b;
+  --green: #1e8a5b;
+  --amber: #a86a06;
+  --red: #c23a31;
+  --stamp: #3b56c8;
+  --focus: #8a5a00;
+  color-scheme: light;
+}
+
+html[lang='ar'] {
+  --font-ui: 'IBM Plex Sans Arabic', 'Space Grotesk Variable', system-ui, sans-serif;
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-panel: var(--panel);
+  --color-panel2: var(--panel-2);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-lane-green: var(--green);
+  --color-lane-amber: var(--amber);
+  --color-lane-red: var(--red);
+  --color-stamp: var(--stamp);
+  --font-sans: var(--font-ui);
+  --font-mono: var(--font-mono);
+}
+
+html {
+  font-size: 15px;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+html[lang='ar'] h1,
+html[lang='ar'] h2,
+html[lang='ar'] h3 {
+  letter-spacing: 0;
+  line-height: 1.4;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-feature-settings: 'zero' 1;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+}
+
+/* The signature element: a customs-stamp style receipt mark. */
+.stamp {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 5px 9px;
+  color: var(--stamp);
+  border: 2px solid var(--stamp);
+  outline: 1px solid color-mix(in srgb, var(--stamp) 55%, transparent);
+  outline-offset: 2px;
+  border-radius: 3px;
+  transform: rotate(-1.2deg);
+  font-weight: 600;
+  line-height: 1.2;
+  background: color-mix(in srgb, var(--stamp) 6%, transparent);
+}
+[dir='rtl'] .stamp {
+  transform: rotate(1.2deg);
+}
+.stamp small {
+  font-weight: 500;
+  font-size: 0.78rem;
+  opacity: 0.85;
+}
+.stamp-reuse {
+  border-style: solid;
+  border-width: 1.5px;
+  opacity: 0.8;
+  transform: rotate(0.8deg);
+}
+.stamp-void {
+  color: var(--red);
+  border-color: var(--red);
+  outline-color: color-mix(in srgb, var(--red) 55%, transparent);
+  border-style: dashed;
+  background: color-mix(in srgb, var(--red) 6%, transparent);
+}
+.stamp-warn {
+  color: var(--amber);
+  border-color: var(--amber);
+  outline-color: color-mix(in srgb, var(--amber) 55%, transparent);
+  background: color-mix(in srgb, var(--amber) 6%, transparent);
+}
+
+.table-clean {
+  width: 100%;
+  border-collapse: collapse;
+}
+.table-clean th {
+  text-align: start;
+  font-weight: 500;
+  color: var(--muted);
+  font-size: 0.85rem;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.table-clean td {
+  padding: 10px 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
+  vertical-align: top;
+}
+.table-clean tr:hover td {
+  background: color-mix(in srgb, var(--panel-2) 55%, transparent);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--ink);
+  border-radius: 3px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.btn:hover {
+  border-color: var(--muted);
+}
+.btn-primary {
+  background: var(--ink);
+  color: var(--canvas);
+  border-color: var(--ink);
+}
+.btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--panel) 0%, var(--panel-2) 50%, var(--panel) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+  border-radius: 3px;
+}
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
