@@ -1,3 +1,5 @@
+import { InspectionBoard } from '@/components/boards/InspectionBoard';
+
 export default function Page() {
-  return <p>inspection: placeholder</p>;
+  return <InspectionBoard />;
 }

@@ -1,3 +1,5 @@
+import { EvidenceBoard } from '@/components/boards/EvidenceBoard';
+
 export default function Page() {
-  return <p>evidence: placeholder</p>;
+  return <EvidenceBoard />;
 }

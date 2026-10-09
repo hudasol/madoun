@@ -1,3 +1,5 @@
+import { SimulatorBoard } from '@/components/boards/SimulatorBoard';
+
 export default function Page() {
-  return <p>simulator: placeholder</p>;
+  return <SimulatorBoard />;
 }

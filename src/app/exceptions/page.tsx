@@ -1,3 +1,5 @@
+import { ExceptionsBoard } from '@/components/boards/ExceptionsBoard';
+
 export default function Page() {
-  return <p>exceptions: placeholder</p>;
+  return <ExceptionsBoard />;
 }
