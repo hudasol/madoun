@@ -113,3 +113,13 @@ export function bootstrapCI(
   const a = (1 - level) / 2;
   return { lo: quantileOf(vals, a), hi: quantileOf(vals, 1 - a) };
 }
+
+/**
+ * How many observations are needed to estimate a proportion to within ±margin at the given confidence
+ * (normal approximation, worst case when the expected rate is unknown). Used to size the audit sample
+ * a pilot needs before a green-lane violation rate can be trusted.
+ */
+export function sampleSizeForProportion(expected: number, margin: number, z = 1.96): number {
+  if (!(margin > 0) || !(expected >= 0 && expected <= 1)) return NaN;
+  return Math.ceil((z * z * expected * (1 - expected)) / (margin * margin));
+}

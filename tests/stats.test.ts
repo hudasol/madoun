@@ -74,3 +74,16 @@ describe('other metrics', () => {
     expect(ci.hi).toBeGreaterThanOrEqual(est);
   });
 });
+
+import { sampleSizeForProportion } from '@/engine';
+describe('sampleSizeForProportion', () => {
+  it('matches the textbook figure for a 50% rate at ±5%', () => expect(sampleSizeForProportion(0.5, 0.05)).toBe(385));
+  it('needs fewer observations for a rarer event and more for a tighter margin', () => {
+    expect(sampleSizeForProportion(0.05, 0.02)).toBe(457);
+    expect(sampleSizeForProportion(0.05, 0.01)).toBeGreaterThan(sampleSizeForProportion(0.05, 0.02));
+  });
+  it('rejects nonsense input', () => {
+    expect(sampleSizeForProportion(0.5, 0)).toBeNaN();
+    expect(sampleSizeForProportion(1.5, 0.05)).toBeNaN();
+  });
+});

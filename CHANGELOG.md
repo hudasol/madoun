@@ -3,6 +3,9 @@
 Milestones are listed with the commit that closes them. Git tags for each milestone are created locally
 as `vX.Y.Z-name`; if tags are missing on GitHub, create them with the commands at the bottom.
 
+## v1.4.0-atrc — review round 4 (national research and strategy)
+- Pilot plan page (EN/AR) with gates, stop criteria, day-one roles, readiness by component and an audit sample-size calculator; research programme for robotic inspection; AI impact assessment. See docs/reviews/04-atrc.md.
+
 ## v1.3.0-tii — review round 3 (applied AI research)
 - Post-clearance audits of flagged green shipments, interval-aware learning, model check (lanes, baselines, learned challenger, burden by group), simulator spread, model card, generated evaluation report. See docs/reviews/03-tii.md.
 

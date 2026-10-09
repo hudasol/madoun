@@ -68,7 +68,7 @@ API: a mock integration API is served under `/api/v1` (spec in `public/openapi.y
 
 Reviews: each round of expert critique and its checklist is in [docs/reviews](docs/reviews).
 
-Docs: [plan](plan.md), [governance](docs/governance.md), [threat model](docs/threat-model.md), [model card](docs/model-card.md), [evaluation](docs/evaluation.md), [integration](docs/integration.md), [architecture](docs/architecture.md), [data model](docs/data-model.md), [robotics extension](docs/robotics-extension.md), [research notes](docs/research-notes.md), [demo script](docs/demo-script.md).
+Docs: [plan](plan.md), [governance](docs/governance.md), [threat model](docs/threat-model.md), [pilot plan](docs/pilot-plan.md), [research programme](docs/research-programme.md), [AI impact assessment](docs/ai-impact-assessment.md), [model card](docs/model-card.md), [evaluation](docs/evaluation.md), [integration](docs/integration.md), [architecture](docs/architecture.md), [data model](docs/data-model.md), [robotics extension](docs/robotics-extension.md), [research notes](docs/research-notes.md), [demo script](docs/demo-script.md).
 
 ## Roadmap
 
