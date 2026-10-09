@@ -72,12 +72,12 @@ export function Shell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen">
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-panel focus:p-3">{t('skip')}</a>
-      <header className="border-b border-line bg-panel">
-        <div className="mx-auto flex max-w-[1280px] flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3">
+      <header className="site-header">
+        <div className="mx-auto flex max-w-[1280px] flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2.5">
           <Link href="/" className="inline-flex items-baseline gap-2" aria-label="Madoun">
             <span className="stamp !py-1 !px-2.5 text-[1.05rem] tracking-tight">Madoun<small className="!text-[0.7rem]">مدوّن</small></span>
           </Link>
-          <nav aria-label="Main" className="order-3 -mx-4 w-[calc(100%+2rem)] overflow-x-auto px-4 md:order-none md:mx-0 md:w-auto md:flex-1 md:px-0">
+          <nav aria-label="Main" className="nav-scroll order-3 -mx-4 w-[calc(100%+2rem)] overflow-x-auto px-4 md:order-none md:mx-0 md:w-auto md:flex-1 md:px-0">
             <ul className="flex gap-1 whitespace-nowrap">
               {NAV.map((n) => {
                 const active = n.href === '/' ? path === '/' : path.startsWith(n.href);
@@ -86,7 +86,7 @@ export function Shell({ children }: { children: ReactNode }) {
                     <Link
                       href={n.href}
                       aria-current={active ? 'page' : undefined}
-                      className={`block rounded-[3px] px-3 py-1.5 text-[0.95rem] ${active ? 'bg-panel2 font-semibold text-ink' : 'text-muted hover:text-ink'}`}
+                      className="nav-link"
                     >
                       {t(n.key)}
                     </Link>
@@ -117,7 +117,8 @@ export function Shell({ children }: { children: ReactNode }) {
                 value={Math.min(steps, Math.max(0, idx))}
                 aria-label={t('scrub')}
                 onChange={(e) => s.setAt(new Date(Date.parse(s.startAt) + Number(e.target.value) * STEP_MS).toISOString())}
-                className="min-w-[160px] flex-1 accent-[var(--stamp)]"
+                className="scrub min-w-[160px] flex-1"
+                style={{ ["--p" as string]: `${(Math.min(steps, Math.max(0, idx)) / steps) * 100}%` }}
               />
               <button type="button" className="btn !py-1" onClick={() => s.setAt(s.endAt)} disabled={s.at === s.endAt}>{t('now')}</button>
               {s.overlayCount > 0 && (
@@ -127,7 +128,7 @@ export function Shell({ children }: { children: ReactNode }) {
           </div>
         )}
       </header>
-      <p className="border-b border-line bg-panel2 px-4 py-1.5 text-center text-sm text-muted">{t('banner')}</p>
+      <p className="border-b border-line bg-panel2/60 px-4 py-1.5 text-center text-[0.82rem] text-muted">{t('banner')}</p>
       <main id="main" className="mx-auto max-w-[1280px] px-4 py-8">{children}</main>
     </div>
   );

@@ -44,7 +44,7 @@ function Row({ x }: { x: InFlight }) {
     <li className="border-b border-line last:border-b-0">
       <Link
         href={`/shipments/${sh.id}`}
-        className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 px-4 py-3 hover:bg-panel2 lg:grid-cols-[14rem_5.5rem_minmax(0,1fr)_16rem]"
+        className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 px-4 py-3 transition-colors hover:bg-panel2 lg:grid-cols-[14rem_5.5rem_minmax(0,1fr)_18rem]"
       >
         <div className="min-w-0">
           <div className="mono font-medium">{sh.declarationRef}</div>
@@ -58,7 +58,7 @@ function Row({ x }: { x: InFlight }) {
         <div className="col-span-2 text-sm lg:col-span-1">
           {late ? (
             <p className="font-semibold [text-wrap:balance]">
-              <span className="mb-1 me-2 inline-flex items-center gap-1 border border-ink px-1.5 text-[0.8rem]">
+              <span className="mb-1 me-2 inline-flex items-center gap-1 rounded-[3px] border border-ink px-1.5 text-[0.8rem]">
                 <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 1v4.5L7.5 7" fill="none" stroke="currentColor" strokeWidth="1.5" /><circle cx="5" cy="5" r="4.2" fill="none" stroke="currentColor" strokeWidth="1.2" /></svg>
                 {t('late')}
               </span>
