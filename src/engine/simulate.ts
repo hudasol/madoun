@@ -22,6 +22,8 @@ export interface SimInput {
   directory: Directory;
   shipments: Shipment[];
   truth: Record<string, { violation?: Truth['violation']; missing: EvidenceType[] }>;
+  /** Start with these approved rule-weight multipliers (used to preview a learning suggestion). */
+  weightOverrides?: Record<string, number>;
 }
 
 export interface ShipmentSimResult {
@@ -69,7 +71,7 @@ const REUSABLE: Partial<Record<EvidenceType, number>> = {
 export function simulate(input: SimInput): SimOutput {
   const { directory: dir, shipments, truth } = input;
   const rng = makeRng(input.seed + 17);
-  let world: World = emptyWorld();
+  let world: World = { ...emptyWorld(), weightOverrides: input.weightOverrides ?? {} };
   const events: MadounEvent[] = [];
   const results: ShipmentSimResult[] = [];
 
