@@ -7,6 +7,7 @@ import { Loading, PageTitle, Panel } from '@/components/Panel';
 import { useBi, useFormat, useT } from '@/lib/i18n';
 import { useStore, type SuggestionPreview } from '@/lib/store';
 import { Figures } from './Figures';
+import { ModelCheck } from './ModelCheck';
 import { useLabels } from './labels';
 
 const T = {
@@ -29,6 +30,10 @@ const T = {
     signal: 'Signal', change: 'Weight change',
     done: 'Approved: {k} now carries weight × {m} for new shipments.',
     sample: 'Synthetic data. Thresholds for suggestions are sample values.',
+    range: 'Plausible range', bias: 'These rates describe shipments that were checked, not all traffic: a rule chose them. Random audits of green traffic give the unbiased comparison.',
+    base: 'Base rate from random audits', baseNote: '95% range {lo} to {hi}, from {n} random audit(s) of green shipments. A real audit can miss things, so the true rate is at least this.', baseNone: 'No random audit has been recorded yet.',
+    evStrong: 'Strong evidence: {h} of {n} confirmed, and the whole plausible range ({lo} to {hi}) is on the suggested side of the threshold.',
+    evWeak: 'Thin evidence: {h} of {n} confirmed. The plausible range ({lo} to {hi}) still crosses the {thr} threshold, so read this as a prompt to look closer, not proof.',
   },
   ar: {
     title: 'التعلّم',
@@ -49,6 +54,10 @@ const T = {
     signal: 'الإشارة', change: 'تغيير الوزن',
     done: 'تم الاعتماد: أصبح وزن {k} × {m} للشحنات الجديدة.',
     sample: 'بيانات اصطناعية. حدود الاقتراحات قيم تجريبية.',
+    range: 'المدى المحتمل', bias: 'هذه النسب تخص الشحنات التي جرى فحصها لا كل الحركة: فقد اختارتها قاعدة. وتعطي عمليات التدقيق العشوائي للمسار الأخضر المقارنة غير المتحيزة.',
+    base: 'المعدل الأساسي من التدقيق العشوائي', baseNote: 'المدى {lo} إلى {hi} (95٪) من {n} عملية تدقيق عشوائي للشحنات الخضراء. قد يفوت التدقيق بعض الحالات، فالمعدل الحقيقي لا يقل عن هذا.', baseNone: 'لم يُسجل أي تدقيق عشوائي بعد.',
+    evStrong: 'دليل قوي: تأكد {h} من {n}، والمدى المحتمل كله ({lo} إلى {hi}) في جهة الاقتراح من العتبة.',
+    evWeak: 'دليل ضعيف: تأكد {h} من {n}. المدى المحتمل ({lo} إلى {hi}) ما زال يتخطى عتبة {thr}، فاعتبره دعوة للتدقيق لا إثباتاً.',
   },
 };
 
@@ -104,6 +113,9 @@ export function LearningBoard() {
         items={[
           { label: t('fir'), value: f.percent(learning.falseInterventionRate * 100), note: t('firNote') },
           { label: t('interventions'), value: f.number(learning.interventions), note: t('basis') },
+          learning.audit.n > 0
+            ? { label: t('base'), value: f.percent(learning.audit.rate * 100), note: t('baseNote', { lo: f.percent(learning.audit.lo * 100), hi: f.percent(learning.audit.hi * 100), n: f.number(learning.audit.n) }) }
+            : { label: t('base'), value: '–', note: t('baseNone') },
         ]}
       />
 
@@ -111,9 +123,9 @@ export function LearningBoard() {
         <Panel title={t('factors')}>
           {learning.factors.length === 0 ? <p className="text-muted">{t('noFactors')}</p> : (
             <div className="relative overflow-x-auto">
-              <table className="table-clean min-w-[560px]">
+              <table className="table-clean min-w-[640px]">
                 <caption className="sr-only">{t('factorsCaption')}</caption>
-                <thead><tr><th scope="col">{t('factor')}</th><th scope="col">{t('ints')}</th><th scope="col">{t('confirmed')}</th><th scope="col">{t('fa')}</th><th scope="col">{t('hit')}</th></tr></thead>
+                <thead><tr><th scope="col">{t('factor')}</th><th scope="col">{t('ints')}</th><th scope="col">{t('confirmed')}</th><th scope="col">{t('fa')}</th><th scope="col">{t('hit')}</th><th scope="col">{t('range')}</th></tr></thead>
                 <tbody>
                   {learning.factors.map((x) => (
                     <tr key={x.key}>
@@ -122,12 +134,14 @@ export function LearningBoard() {
                       <td className="tabular-nums">{f.number(x.confirmed)}</td>
                       <td className="tabular-nums">{f.number(x.falseAlarms)}</td>
                       <td><HitBar rate={x.hitRate} /></td>
+                      <td className="whitespace-nowrap tabular-nums text-muted">{f.percent(x.lo * 100)} – {f.percent(x.hi * 100)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           )}
+          <p className="mt-3 max-w-[62ch] text-sm text-muted">{t('bias')}</p>
         </Panel>
 
         <Panel title={t('missing')}>
@@ -170,6 +184,15 @@ export function LearningBoard() {
                   <p className="text-sm text-muted">{kindLabel(g.kind)}{g.multiplier ? `: ${t('mult', { m: f.number(g.multiplier, 2) })}` : ''}</p>
                   <h3 className="mt-0.5 text-base">{L.signal(g.key)}</h3>
                   <p className="mt-2 max-w-[70ch]">{humanise(bi(g.rationale, g.rationaleAr), g)}</p>
+                  {g.evidence && (
+                    <p className="mt-1 max-w-[70ch] text-sm text-muted">
+                      {t(g.evidence.strength === 'strong' ? 'evStrong' : 'evWeak', {
+                        h: f.number(g.evidence.hits), n: f.number(g.evidence.n),
+                        lo: f.percent(g.evidence.lo * 100), hi: f.percent(g.evidence.hi * 100),
+                        thr: f.percent((g.kind === 'lower-weight' ? 15 : 60)),
+                      })}
+                    </p>
+                  )}
                   {advisory ? (
                     <div className="mt-3 max-w-[70ch] border-s-2 border-line ps-3">
                       <p>{t('contact', { fw: L.forwarder(g.forwarderId), doc: L.evidenceType(g.evidenceType ?? '').toLowerCase() })}</p>
@@ -223,6 +246,8 @@ export function LearningBoard() {
         )}
         <p className="mt-6 text-sm text-muted">{t('sample')}</p>
       </section>
+
+      <ModelCheck />
     </div>
   );
 }

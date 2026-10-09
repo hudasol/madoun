@@ -16,3 +16,5 @@ export * from './metrics';
 export * from './simulate';
 export * from './sign';
 export * from './validate';
+export * from './stats';
+export * from './evaluate';
