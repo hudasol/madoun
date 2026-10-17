@@ -750,6 +750,14 @@ components:
                   note: { type: string }
             inspectionTask: { type: object }
             inspectionResult: { type: object }
+            inspectionConfirmation:
+              type: object
+              description: Present once a customs officer has upheld or overturned a serious machine finding (a major finding or a broken seal reported by a robot, drone or scanner). Until then the inspection receipt is pending.
+              properties:
+                officerId: { type: string }
+                decision: { type: string, enum: [upheld, overturned] }
+                note: { type: string }
+                at: { type: string, format: date-time }
             outcome: { type: object }
             cleared:
               type: object

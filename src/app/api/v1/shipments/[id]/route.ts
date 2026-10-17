@@ -26,6 +26,7 @@ export async function GET(request: Request, ctx: Ctx) {
         reviews: file.reviews,
         inspectionTask: file.inspectionTask,
         inspectionResult: file.inspectionResult,
+        inspectionConfirmation: file.inspectionConfirmation,
         outcome: file.outcome,
         cleared: file.cleared,
       },
