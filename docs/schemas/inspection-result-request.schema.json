@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://madoun.example/schemas/inspection-result-request.schema.json",
+  "title": "InspectionResultRequest",
+  "description": "Body of POST /api/v1/inspection-tasks/{id}/result, sent by an inspection gateway (robot, drone or scanner adapter). The task id and shipment id come from the URL. Unknown fields are rejected at every level. A finding of severity major, or a broken seal, from a robot, drone or scanner creates a pending receipt that a customs officer must uphold or overturn. The body is capped at 65536 bytes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["performedBy", "performerKind", "completedAt", "seal", "findings", "media"],
+  "properties": {
+    "performedBy": { "type": "string", "minLength": 1, "maxLength": 120, "pattern": "^[A-Za-z0-9][A-Za-z0-9:._-]*$" },
+    "performerKind": { "type": "string", "enum": ["robot", "drone", "scanner", "officer"] },
+    "completedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Not before the task was requested and not more than 24 hours after the dataset snapshot time."
+    },
+    "seal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "intact"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "intact": { "type": "boolean" }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 50,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "severity", "note"],
+        "properties": {
+          "kind": { "type": "string", "enum": ["none", "seal-broken", "undeclared-goods", "quantity-mismatch", "damage", "temperature-excursion", "prohibited-item"] },
+          "severity": { "type": "string", "enum": ["info", "minor", "major"], "description": "A finding of kind none must have severity info." },
+          "note": { "type": "string", "minLength": 1, "maxLength": 500 },
+          "noteAr": { "type": "string", "minLength": 1, "maxLength": 500 }
+        }
+      }
+    },
+    "media": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ref", "sha256", "bytes"],
+        "properties": {
+          "ref": { "type": "string", "minLength": 1, "maxLength": 300 },
+          "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "bytes": { "type": "integer", "minimum": 0, "maximum": 10000000000 }
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "performedBy": "cell-G1",
+      "performerKind": "robot",
+      "completedAt": "2026-10-09T03:30:00.000Z",
+      "seal": { "id": "SEAL-0027", "intact": true },
+      "findings": [{ "kind": "undeclared-goods", "severity": "major", "note": "Load does not match the declared goods" }],
+      "media": [{ "ref": "media/insp-SHP-0027/overview.jpg", "sha256": "3f0a1c9e5b7d2468ace013579bdf2468ace013579bdf2468ace013579bdf2468", "bytes": 4096 }]
+    }
+  ]
+}
