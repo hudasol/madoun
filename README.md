@@ -7,6 +7,10 @@ Built for challenge **#21 — Smart Customs Accelerated Clearance** (Abu Dhabi C
 
 > **Status:** early build. Everything here runs on **synthetic data**. Authority mappings and risk rules are **illustrative samples** and must be validated with Abu Dhabi Customs and the relevant authorities before any real use.
 
+## Proposal for Edge in one paragraph
+
+Madoun proposes a robotic inspection cell for red lane containers that works under human supervision, on top of a tamper evident evidence ledger that runs offline. A robot, drone or scanner may inspect, but any serious finding it reports stays pending until a customs officer upholds or overturns it, which the engine enforces and a property test checks ([rule](src/engine/inspection.ts), [enforcement](src/engine/validate.ts), [tests](tests/confirmation.test.ts)). Robots connect through a strict gateway contract with ROS 2 messages and a reference gateway ([robotics extension](docs/robotics-extension.md), [gateway](gateway/robot.ts)). Every receipt sits in an RFC 6962 Merkle tree with signed checkpoints and proofs that a standalone script verifies offline ([verifier](scripts/verify-proof.mjs), [tests](tests/merkle.test.ts)). The production build is proved to make zero outbound requests ([offline check](scripts/offline-check.mjs)), and a preregistered digital twin of the cell reports its hits and its miss ([preregistration](docs/preregistration-cell.md), [results](docs/cell-experiment.md)). Read the two page [Edge proposal](docs/edge-proposal.md), the [architecture and evidence flow](docs/edge-architecture.md), the [threat model](docs/threat-model.md) and the [decision log](docs/decisions.md). All data is synthetic, the API is a mock, the keys are public demo keys and the robot is a simulator.
+
 ---
 
 ## The problem
@@ -60,6 +64,8 @@ npm install
 npm test          # engine tests
 npm run dev       # http://localhost:3000
 npm run build
+npm run cell      # preregistered inspection cell experiment, writes docs/cell-experiment.md
+npm run offline   # after a build: proves zero outbound requests (needs a local Chromium or Edge)
 ```
 
 Modelled result on the synthetic week (240 shipments, seeded, reproducible): median release 27.3 h → 16.0 h (−41%), p90 48.3 h → 31.1 h, approvals ready before arrival 62.5% → 77.1%, 294 repeat checks avoided. These are model outputs on invented data, not a performance claim. Queue waits for full reviews are deliberately not reduced.
@@ -68,7 +74,7 @@ API: a mock integration API is served under `/api/v1` (spec in `public/openapi.y
 
 Reviews: each round of expert critique and its checklist is in [docs/reviews](docs/reviews).
 
-Docs: [plan](plan.md), [governance](docs/governance.md), [threat model](docs/threat-model.md), [pilot plan](docs/pilot-plan.md), [research programme](docs/research-programme.md), [AI impact assessment](docs/ai-impact-assessment.md), [model card](docs/model-card.md), [evaluation](docs/evaluation.md), [integration](docs/integration.md), [architecture](docs/architecture.md), [data model](docs/data-model.md), [robotics extension](docs/robotics-extension.md), [research notes](docs/research-notes.md), [demo script](docs/demo-script.md).
+Docs: [Edge proposal](docs/edge-proposal.md), [decision log](docs/decisions.md), [cell experiment](docs/cell-experiment.md), [key custody](docs/key-custody.md), [plan](plan.md), [governance](docs/governance.md), [threat model](docs/threat-model.md), [pilot plan](docs/pilot-plan.md), [research programme](docs/research-programme.md), [AI impact assessment](docs/ai-impact-assessment.md), [model card](docs/model-card.md), [evaluation](docs/evaluation.md), [integration](docs/integration.md), [architecture](docs/architecture.md), [data model](docs/data-model.md), [robotics extension](docs/robotics-extension.md), [research notes](docs/research-notes.md), [demo script](docs/demo-script.md).
 
 ## Signing keys: demo by default, development keystore optional
 
