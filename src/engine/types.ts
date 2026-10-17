@@ -380,6 +380,15 @@ export interface InspectionResult {
   mediaRefs: string[];
 }
 
+export type ConfirmationDecision = 'upheld' | 'overturned';
+
+export interface InspectionConfirmation {
+  officerId: string;
+  decision: ConfirmationDecision;
+  note: string;
+  at: ISODate;
+}
+
 export type OutcomeResult = 'confirmed' | 'false-alarm' | 'not-inspected';
 
 export interface Outcome {
@@ -428,6 +437,8 @@ export type MadounEvent =
   | { type: 'ExceptionResolved'; at: ISODate; exceptionId: string; officerId: string; note: string }
   | { type: 'InspectionRequested'; at: ISODate; task: InspectionTask }
   | { type: 'InspectionCompleted'; at: ISODate; result: InspectionResult }
+  /** A customs officer upholds or overturns a serious finding reported by a machine (see requiresOfficerConfirmation). */
+  | { type: 'InspectionConfirmed'; at: ISODate; shipmentId: string; officerId: string; decision: ConfirmationDecision; note: string }
   | { type: 'OutcomeRecorded'; at: ISODate; outcome: Outcome }
   | { type: 'ShipmentCleared'; at: ISODate; shipmentId: string; preArrival: boolean }
   | { type: 'RuleSuggestionApproved'; at: ISODate; key: string; multiplier: number; officerId: string };
@@ -458,6 +469,8 @@ export interface ShipmentFile {
   exceptions: ExceptionItem[];
   inspectionTask?: InspectionTask;
   inspectionResult?: InspectionResult;
+  /** Present once an officer has upheld or overturned a serious machine finding. The first confirmation stands. */
+  inspectionConfirmation?: InspectionConfirmation;
   outcome?: Outcome;
   cleared?: { at: ISODate; preArrival: boolean };
   audit: AuditEntry[];

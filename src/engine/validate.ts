@@ -1,4 +1,10 @@
-import type { MadounEvent, World } from './types';
+import { requiresOfficerConfirmation } from './inspection';
+import type { MadounEvent, ShipmentFile, World } from './types';
+
+/** True when the file holds a serious machine finding that no officer has confirmed yet. */
+export function awaitingOfficerConfirmation(f: ShipmentFile | undefined): boolean {
+  return !!f?.inspectionResult && requiresOfficerConfirmation(f.inspectionResult) && !f.inspectionConfirmation;
+}
 
 /**
  * Invariants an event must satisfy against the current world BEFORE it is appended.
@@ -31,6 +37,13 @@ export function validateEvent(world: World, ev: MadounEvent): string[] {
       const r = ev.receipt;
       if (world.receipts.some((x) => x.id === r.id)) bad(`Receipt '${r.id}' already exists.`);
       if (!(Date.parse(r.validUntil) > Date.parse(r.validFrom))) bad('validUntil must be after validFrom.');
+      // A serious machine finding becomes verified evidence only after an officer upholds it.
+      if (r.type === 'inspection-result' && r.status === 'verified' && r.scope.shipmentId) {
+        const f = world.shipments[r.scope.shipmentId];
+        if (f?.inspectionResult?.taskId === r.subjectRef && requiresOfficerConfirmation(f.inspectionResult) && f.inspectionConfirmation?.decision !== 'upheld') {
+          bad('A serious machine finding can only be issued as verified after an officer upholds it.');
+        }
+      }
       break;
     }
     case 'ReceiptRevoked':
@@ -74,8 +87,22 @@ export function validateEvent(world: World, ev: MadounEvent): string[] {
       needFile(ev.result.shipmentId);
       if (!world.shipments[ev.result.shipmentId]?.inspectionTask) bad('No inspection was requested for this shipment.');
       break;
+    case 'InspectionConfirmed': {
+      needFile(ev.shipmentId);
+      nonEmpty(ev.officerId, 'officerId', 120);
+      nonEmpty(ev.note, 'note', 1000);
+      if (!['upheld', 'overturned'].includes(ev.decision)) bad('decision must be upheld or overturned.');
+      const f = world.shipments[ev.shipmentId];
+      if (f && !awaitingOfficerConfirmation(f)) {
+        bad(f.inspectionConfirmation ? 'This inspection result has already been confirmed.' : 'There is no unconfirmed machine finding on this shipment.');
+      }
+      if (f?.inspectionResult && Date.parse(ev.at) < Date.parse(f.inspectionResult.completedAt)) bad('A confirmation cannot predate the inspection result.');
+      break;
+    }
     case 'OutcomeRecorded':
       needFile(ev.outcome.shipmentId);
+      // The learning loop only hears about a serious machine finding once a person has confirmed it.
+      if (awaitingOfficerConfirmation(world.shipments[ev.outcome.shipmentId])) bad('Outcome cannot be recorded before an officer confirms the machine finding.');
       break;
     case 'RuleSuggestionApproved':
       nonEmpty(ev.key, 'key', 200);

@@ -1,5 +1,8 @@
 import { appendReceipt, makeReceipt } from './evidence';
-import type { AuditEntry, MadounEvent, ShipmentFile, World } from './types';
+import { inspectionReceiptId } from './inspection';
+import type { AuditEntry, EvidenceReceipt, MadounEvent, ShipmentFile, World } from './types';
+
+type Confirmation = Extract<MadounEvent, { type: 'InspectionConfirmed' }>;
 
 export function emptyWorld(): World {
   return { shipments: {}, receipts: [], weightOverrides: {}, log: [] };
@@ -141,6 +144,35 @@ function newFile(ev: Extract<MadounEvent, { type: 'ShipmentRegistered' }>): Ship
   };
 }
 
+/**
+ * Officer confirmation of a machine finding. The first confirmation stands; a confirmation for a file
+ * without an inspection result changes nothing (and is still logged), like every other dangling event.
+ */
+function confirmationTarget(f: ShipmentFile | undefined): string | undefined {
+  return f?.inspectionResult && !f.inspectionConfirmation ? inspectionReceiptId(f.inspectionResult.taskId) : undefined;
+}
+
+function confirmFile(f: ShipmentFile, ev: Confirmation): ShipmentFile {
+  const upheld = ev.decision === 'upheld';
+  return {
+    ...f,
+    inspectionConfirmation: { officerId: ev.officerId, decision: ev.decision, note: ev.note, at: ev.at },
+    audit: audit(
+      f,
+      ev.at,
+      ev.officerId,
+      `Machine inspection finding ${upheld ? 'upheld' : 'overturned'} by officer: ${ev.note}`,
+      `${upheld ? 'أكّد الضابط نتيجة الفحص الآلي' : 'نقض الضابط نتيجة الفحص الآلي'}: ${ev.note}`,
+    ),
+  };
+}
+
+/** Upheld makes a pending inspection receipt verified; overturned revokes it with the officer's note as reason. */
+function confirmReceipt(r: EvidenceReceipt, ev: Confirmation): EvidenceReceipt {
+  if (r.status !== 'pending') return r;
+  return ev.decision === 'upheld' ? { ...r, status: 'verified' } : { ...r, status: 'revoked', revokedReason: ev.note };
+}
+
 function resolveInFile(f: ShipmentFile, ev: Extract<MadounEvent, { type: 'ExceptionResolved' }>): ShipmentFile {
   return {
     ...f,
@@ -175,6 +207,16 @@ export function apply(world: World, ev: MadounEvent): World {
     }
     case 'RuleSuggestionApproved':
       return { ...next, weightOverrides: { ...next.weightOverrides, [ev.key]: ev.multiplier } };
+    case 'InspectionConfirmed': {
+      const f = next.shipments[ev.shipmentId];
+      const rid = confirmationTarget(f);
+      if (!f || !rid) return next;
+      return {
+        ...next,
+        shipments: { ...next.shipments, [ev.shipmentId]: confirmFile(f, ev) },
+        receipts: next.receipts.map((r) => (r.id === rid ? confirmReceipt(r, ev) : r)),
+      };
+    }
     default: {
       const id = shipmentIdOf(ev);
       return id ? mapFile(next, id, (f) => fileEvent(f, ev)) : next; // unknown shipments are ignored but still logged
@@ -231,6 +273,15 @@ export class WorldBuilder {
       case 'RuleSuggestionApproved':
         w.weightOverrides = { ...w.weightOverrides, [ev.key]: ev.multiplier };
         break;
+      case 'InspectionConfirmed': {
+        const f = w.shipments[ev.shipmentId];
+        const rid = confirmationTarget(f);
+        if (!f || !rid) break;
+        w.shipments[ev.shipmentId] = confirmFile(f, ev);
+        const i = this.receiptPos.get(rid);
+        if (i !== undefined) w.receipts[i] = confirmReceipt(w.receipts[i], ev);
+        break;
+      }
       default: {
         const id = shipmentIdOf(ev);
         const f = id ? w.shipments[id] : undefined;
