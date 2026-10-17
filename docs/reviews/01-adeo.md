@@ -1,5 +1,7 @@
 # Review 1: government-office AI engineer (ADEO lens)
 
+> Self review written by the author from an assumed professional viewpoint. The organisation named in the title did not write, commission or endorse it.
+
 Reviewer stance: an engineer in a government executive office who has to decide whether this could be adopted, integrated and defended in front of leadership and other entities. Cares about delivery, integration, governance, Arabic-first use, accessibility, and numbers that survive questions.
 
 ## Critique of v0.9.1

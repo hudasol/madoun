@@ -1,5 +1,7 @@
 # Review 3: applied AI research engineer (TII lens)
 
+> Self review written by the author from an assumed professional viewpoint. The organisation named in the title did not write, commission or endorse it.
+
 Reviewer stance: a researcher who asks for the experiment before the claim. Wants a held-out evaluation, honest baselines, uncertainty on every number, an account of selection and feedback effects, a look at who bears the errors, and a model description someone else could audit.
 
 ## Critique of v1.2.0

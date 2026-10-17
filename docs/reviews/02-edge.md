@@ -1,5 +1,7 @@
 # Review 2: defence and security-systems AI engineer (Edge lens)
 
+> Self review written by the author from an assumed professional viewpoint. The organisation named in the title did not write, commission or endorse it.
+
 Reviewer stance: an engineer who ships software that must keep working under load, adversaries and audit, and who distrusts any "tamper-proof" or "scales fine" claim that has not been attacked. Cares about integrity, provenance, input handling, performance under realistic volume, supply chain, and a written threat model.
 
 ## Critique of v1.1.0
