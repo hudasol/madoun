@@ -1,4 +1,4 @@
-import type { EvidenceType, GoodsCategory, Shipment, TransportMode } from '@/engine';
+import type { EvidenceType, GoodsCategory, InspectionFinding, InspectionResult, InspectionTask, Shipment, TransportMode } from '@/engine';
 
 export interface ValidationIssue { path: string; message: string }
 
@@ -185,6 +185,107 @@ export function validateAssessmentRequest(input: unknown, ctx: ValidationContext
       id, declarationRef: declarationRef!, mode: mode!, carrier: carrier!, ...(carrierAr ? { carrierAr } : {}), conveyance: conveyance!, ...(conveyanceAr ? { conveyanceAr } : {}), entryPoint: entryPoint!,
       eta: eta!, filedAt, traderId: traderId!, forwarderId: forwarderId!, invoiceRef: invoiceRef!, incoterm: incoterm!,
       currency: 'AED', totalValue: totalValue!, submitted, consignments,
+    },
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* Inspection result posted by an inspection gateway                    */
+/* ------------------------------------------------------------------ */
+
+export const PERFORMER_KINDS: readonly InspectionResult['performerKind'][] = ['robot', 'drone', 'scanner', 'officer'];
+export const FINDING_KINDS: readonly InspectionFinding['kind'][] = [
+  'none', 'seal-broken', 'undeclared-goods', 'quantity-mismatch', 'damage', 'temperature-excursion', 'prohibited-item',
+];
+export const SEVERITIES: readonly InspectionFinding['severity'][] = ['info', 'minor', 'major'];
+export const RESULT_LIMITS = { findings: 50, media: 20, noteChars: 500, refChars: 300, mediaBytes: 10_000_000_000 } as const;
+/** How far after the dataset snapshot a gateway may date a result (clock skew allowance). */
+export const RESULT_FUTURE_HOURS = 24;
+
+export type InspectionResultValidation = { ok: true; result: InspectionResult } | { ok: false; issues: ValidationIssue[] };
+
+/**
+ * Strict validation of a result posted for an open inspection task. Unknown fields are rejected at every
+ * level. The task id and shipment id come from the URL and the task, never from the body.
+ */
+export function validateInspectionResultRequest(input: unknown, ctx: { task: InspectionTask; now: string }): InspectionResultValidation {
+  const issues: ValidationIssue[] = [];
+  const add = (path: string, message: string) => issues.push({ path, message });
+  if (!isObj(input)) return { ok: false, issues: [{ path: '$', message: 'Body must be a JSON object.' }] };
+  const noExtra = (o: Obj, allowed: string[], base: string) => {
+    for (const k of Object.keys(o)) if (!allowed.includes(k)) add(base ? `${base}.${k}` : k, 'Unknown field.');
+  };
+  const str = (o: Obj, k: string, p: string, max: number, required = true): string | undefined => {
+    const v = o[k];
+    if (v === undefined) { if (required) add(p, 'Required.'); return undefined; }
+    if (typeof v !== 'string' || v.trim() === '') { add(p, 'Must be a non-empty string.'); return undefined; }
+    if (v.length > max) { add(p, `Must be at most ${max} characters.`); return undefined; }
+    return v;
+  };
+  const oneOf = <T extends string>(o: Obj, k: string, p: string, allowed: readonly T[]): T | undefined => {
+    const v = o[k];
+    if (v === undefined) { add(p, 'Required.'); return undefined; }
+    if (typeof v !== 'string' || !(allowed as readonly string[]).includes(v)) { add(p, `Must be one of: ${allowed.join(', ')}.`); return undefined; }
+    return v as T;
+  };
+
+  noExtra(input, ['performedBy', 'performerKind', 'completedAt', 'seal', 'findings', 'media'], '');
+  const performedBy = str(input, 'performedBy', 'performedBy', 120);
+  if (performedBy !== undefined && !/^[A-Za-z0-9][A-Za-z0-9:._-]*$/.test(performedBy)) add('performedBy', 'Use letters, digits and : . _ - only.');
+  const performerKind = oneOf(input, 'performerKind', 'performerKind', PERFORMER_KINDS);
+
+  const completedAt = str(input, 'completedAt', 'completedAt', 40);
+  if (completedAt !== undefined) {
+    if (!ISO.test(completedAt) || Number.isNaN(Date.parse(completedAt))) add('completedAt', 'Must be an ISO-8601 date-time with a timezone.');
+    else if (Date.parse(completedAt) < Date.parse(ctx.task.requestedAt)) add('completedAt', 'Must not be before the task was requested.');
+    else if (Date.parse(completedAt) > Date.parse(ctx.now) + RESULT_FUTURE_HOURS * 3_600_000) add('completedAt', `Must not be more than ${RESULT_FUTURE_HOURS} hours after the dataset snapshot time.`);
+  }
+
+  let seal: InspectionResult['seal'] | undefined;
+  if (!isObj(input.seal)) add('seal', 'Required object with id and intact.');
+  else {
+    noExtra(input.seal, ['id', 'intact'], 'seal');
+    const id = str(input.seal, 'id', 'seal.id', 64);
+    if (typeof input.seal.intact !== 'boolean') add('seal.intact', 'Must be true or false.');
+    if (id !== undefined && typeof input.seal.intact === 'boolean') seal = { id, intact: input.seal.intact };
+  }
+
+  const findings: InspectionFinding[] = [];
+  if (!Array.isArray(input.findings) || input.findings.length === 0) add('findings', 'Required non-empty array. Report kind "none" when nothing was found.');
+  else if (input.findings.length > RESULT_LIMITS.findings) add('findings', `At most ${RESULT_LIMITS.findings} findings.`);
+  else input.findings.forEach((f, i) => {
+    const p = `findings[${i}]`;
+    if (!isObj(f)) { add(p, 'Must be an object.'); return; }
+    noExtra(f, ['kind', 'severity', 'note', 'noteAr'], p);
+    const kind = oneOf(f, 'kind', `${p}.kind`, FINDING_KINDS);
+    const severity = oneOf(f, 'severity', `${p}.severity`, SEVERITIES);
+    const note = str(f, 'note', `${p}.note`, RESULT_LIMITS.noteChars);
+    const noteAr = str(f, 'noteAr', `${p}.noteAr`, RESULT_LIMITS.noteChars, false);
+    if (kind === 'none' && severity !== undefined && severity !== 'info') add(`${p}.severity`, 'A "none" finding must have severity info.');
+    if (kind && severity && note !== undefined) findings.push({ kind, severity, note, ...(noteAr === undefined ? {} : { noteAr }) });
+  });
+
+  const media: NonNullable<InspectionResult['media']> = [];
+  if (!Array.isArray(input.media)) add('media', 'Required array (may be empty).');
+  else if (input.media.length > RESULT_LIMITS.media) add('media', `At most ${RESULT_LIMITS.media} media items.`);
+  else input.media.forEach((m, i) => {
+    const p = `media[${i}]`;
+    if (!isObj(m)) { add(p, 'Must be an object.'); return; }
+    noExtra(m, ['ref', 'sha256', 'bytes'], p);
+    const ref = str(m, 'ref', `${p}.ref`, RESULT_LIMITS.refChars);
+    const sha = m.sha256;
+    if (typeof sha !== 'string' || !/^[0-9a-f]{64}$/.test(sha)) add(`${p}.sha256`, 'Must be 64 lowercase hex characters (SHA-256).');
+    const bytes = m.bytes;
+    if (typeof bytes !== 'number' || !Number.isInteger(bytes) || bytes < 0 || bytes > RESULT_LIMITS.mediaBytes) add(`${p}.bytes`, `Must be an integer from 0 to ${RESULT_LIMITS.mediaBytes}.`);
+    if (ref !== undefined && typeof sha === 'string' && /^[0-9a-f]{64}$/.test(sha) && typeof bytes === 'number') media.push({ ref, sha256: sha, bytes });
+  });
+
+  if (issues.length || !performedBy || !performerKind || !completedAt || !seal) return { ok: false, issues };
+  return {
+    ok: true,
+    result: {
+      taskId: ctx.task.id, shipmentId: ctx.task.shipmentId, performedBy, performerKind, completedAt, seal, findings,
+      mediaRefs: media.map((m) => m.ref), media,
     },
   };
 }
