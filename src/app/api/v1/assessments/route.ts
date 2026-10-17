@@ -1,5 +1,5 @@
 import { getWorld } from '@/server/world';
-import { errorResponse, handle, json } from '@/server/http';
+import { errorResponse, handle, json, readJsonBody } from '@/server/http';
 import { validateAssessmentRequest } from '@/server/validate';
 import { planShipment } from '@/engine';
 
@@ -11,21 +11,9 @@ const MAX_BODY_BYTES = 256 * 1024;
  */
 export async function POST(request: Request) {
   return handle(request, async () => {
-    const ct = request.headers.get('content-type') ?? '';
-    if (!ct.toLowerCase().includes('json')) {
-      return errorResponse(415, 'unsupported_media_type', "Content-Type must be 'application/json'.");
-    }
-    // Reject on the declared size before reading anything, then re-check the bytes actually received.
-    const declared = Number(request.headers.get('content-length') ?? 0);
-    if (declared > MAX_BODY_BYTES) return errorResponse(413, 'payload_too_large', `Body must be at most ${MAX_BODY_BYTES} bytes.`);
-    const text = await request.text();
-    if (new TextEncoder().encode(text).length > MAX_BODY_BYTES) return errorResponse(413, 'payload_too_large', `Body must be at most ${MAX_BODY_BYTES} bytes.`);
-    let body: unknown;
-    try {
-      body = JSON.parse(text);
-    } catch {
-      return errorResponse(400, 'invalid_json', 'Body is not valid JSON.');
-    }
+    const read = await readJsonBody(request, MAX_BODY_BYTES);
+    if (read instanceof Response) return read;
+    const body = read.body;
 
     const { world, g, now } = getWorld();
     const v = validateAssessmentRequest(body, {
