@@ -28,7 +28,7 @@ export function clearanceRecord(world: World, dir: Directory, file: ShipmentFile
     evidenceChecks: plan.checks,
     receipts,
     exceptions: file.exceptions,
-    inspection: { task: file.inspectionTask ?? null, result: file.inspectionResult ?? null },
+    inspection: { task: file.inspectionTask ?? null, result: file.inspectionResult ?? null, officerConfirmation: file.inspectionConfirmation ?? null },
     cleared: file.cleared ?? null,
     auditTrail: file.audit,
   };
