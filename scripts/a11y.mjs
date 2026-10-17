@@ -7,7 +7,8 @@ const base = process.argv[2] ?? 'http://localhost:3000';
 const axeSource = fs.readFileSync(createRequire(import.meta.url).resolve('axe-core/axe.min.js'), 'utf8');
 const browser = await launchChromium();
 
-const pages = ['/', '/shipments', '/shipments/SHP-0005', '/exceptions', '/evidence', '/learning', '/inspection', '/simulator', '/pilot', '/method'];
+const firstReceipt = (await (await fetch(new URL('/api/v1/receipts?pageSize=1', base))).json()).data[0].id;
+const pages = ['/', '/shipments', '/shipments/SHP-0005', '/exceptions', '/evidence', `/evidence?receipt=${firstReceipt}`, '/learning', '/inspection', '/simulator', '/pilot', '/method'];
 let total = 0;
 let confirmScanned = 0;
 const seen = new Map();
@@ -32,6 +33,12 @@ for (const scheme of ['dark', 'light']) {
       await page.waitForTimeout(900);
       await scan(p);
     }
+    // The inclusion proof action: press it on an opened receipt and scan the result (message or fallback text area).
+    await page.goto(base + `/evidence?receipt=${firstReceipt}`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(900);
+    await page.locator('button', { hasText: /inclusion proof|إثبات التضمين/ }).first().click();
+    await page.waitForTimeout(400);
+    await scan('/evidence (inclusion proof copied)');
     // The officer confirmation banner and form appear only after a machine reports a serious finding, so drive
     // the inspection cell until one does, then scan the board and the shipment file (client navigation keeps state).
     await page.goto(base + '/inspection', { waitUntil: 'networkidle' });
@@ -55,7 +62,7 @@ for (const scheme of ['dark', 'light']) {
 }
 await browser.close();
 if (confirmScanned < 4) { console.log('could not reach the officer confirmation form in', 4 - confirmScanned, 'variant(s)'); total++; }
-if (!seen.size) console.log('axe: no WCAG A/AA violations found on', pages.length, 'pages x 4 variants, plus the confirmation banner and form');
+if (!seen.size) console.log('axe: no WCAG A/AA violations found on', pages.length, 'pages x 4 variants, plus the confirmation banner and form and the inclusion proof action');
 for (const [id, e] of seen) console.log(`\n[${e.impact}] ${id}: ${e.help}\n  e.g. ${e.sample}\n  on: ${[...e.where].slice(0, 6).join('; ')}${e.where.size > 6 ? ` (+${e.where.size - 6} more)` : ''}`);
 console.log('\nviolating nodes:', total);
 process.exit(total ? 1 : 0);
