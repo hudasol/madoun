@@ -28,7 +28,7 @@ describe('docs/edge-proposal.md', () => {
     expect(doc).toContain(`(90th percentile ${two(s4.p90Lead.mean)} h against ${two(s1.p90Lead.mean)} h)`);
     const words = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen'];
     const cap = (w: string) => w[0].toUpperCase() + w.slice(1);
-    expect(doc).toContain(`${cap(words[cell.hits])} of ${words[cell.predictions.length]} predictions hit`);
+    expect(doc).toContain(`${cap(words[cell.hits])} of ${words[cell.predictionCount]} predictions hit`);
     expect(doc).toContain(`for ${cell.seeds.length} seeds`);
   });
 
@@ -36,7 +36,8 @@ describe('docs/edge-proposal.md', () => {
     const cited = [...doc.matchAll(/`((?:src|docs|tests|scripts|gateway|public)\/[\w./-]+)`/g)].map((m) => m[1]);
     expect(cited.length).toBeGreaterThan(20);
     for (const p of cited) {
-      const exists = fs.existsSync(p) || fs.readdirSync(p.split('/').slice(0, -1).join('/')).some((f) => f.startsWith(p.split('/').pop()!));
+      // Exact path, or a numbered review cited by its number (docs/reviews/01 for docs/reviews/01-adeo.md).
+      const exists = fs.existsSync(p) || (/^docs\/reviews\/\d\d$/.test(p) && fs.readdirSync('docs/reviews').some((f) => f.startsWith(p.split('/').pop()! + '-')));
       expect(exists, p).toBe(true);
     }
     for (const f of ['Dockerfile']) expect(fs.existsSync(f)).toBe(true);
