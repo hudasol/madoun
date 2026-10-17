@@ -1,6 +1,6 @@
 # Key custody
 
-Madoun signs two kinds of things with Ed25519: receipt attestations (each verifying authority signs the receipts it vouches for, `src/engine/sign.ts`) and ledger checkpoints (the ledger operator signs the Merkle root, `src/engine/checkpoint.ts`). The engine never holds a private key. It only sees the `Signer` interface:
+Madoun signs two kinds of things with Ed25519: receipt attestations (each verifying authority signs the receipts it vouches for, `src/engine/sign.ts`) and ledger checkpoints (the ledger operator signs the Merkle root, `src/engine/checkpoint.ts`). Signing code takes a `Signer`, so a real key never has to enter the engine. The one exception is the demo keyring (`demoSigner` in `src/engine/sign.ts`), which derives its secrets inside the engine from public strings, on purpose, so the demo is reproducible:
 
 ```ts
 interface Signer { authorityId: string; sign(message: Uint8Array): Uint8Array }
@@ -19,6 +19,15 @@ interface Signer { authorityId: string; sign(message: Uint8Array): Uint8Array }
 4. **Rotation and revocation**: a new key for each period, old keys kept for verification of old signatures, and a revocation list checked by verifiers.
 5. **Separation of duties**: the people who operate the ledger cannot use an authority's attestation key, and the reverse.
 6. **Audit**: every signing operation logged by the HSM or KMS with the caller's identity.
+
+## Demo ledger public key
+For the demo, the ledger checkpoint public key is published here, in the repository, which is a different channel from the server that produces the proofs:
+
+```
+7b227ecec878090dcf552e4554d08681e188108c7b727d73628619442125f391
+```
+
+It is derived from a public string, so anyone can sign with it. A test (`tests/keystore.test.ts`) checks that this value matches the demo key the server uses.
 
 ## How a verifier should obtain the public key
 `scripts/verify-proof.mjs` takes the public key as an argument on purpose. The `/api/v1/ledger/checkpoint` response includes a public key for convenience in the demo, but a verifier who takes the key from the same server that produced the proof proves only that the server is consistent with itself.
