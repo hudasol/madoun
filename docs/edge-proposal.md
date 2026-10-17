@@ -1,0 +1,44 @@
+# Madoun for Edge: supervised robotic inspection with tamper evident evidence
+
+**Proposal seed, not a deployment.** Everything below runs on synthetic data. The API is a mock, roles are a user interface demonstration, signing keys are public demo keys, the robot is a seeded simulator, and the synthetic ground truth is partly circular with the risk rules. No partner, customer or authority has reviewed or endorsed this work. Each claim points to the file, test or generated report that supports it.
+
+## 1. The problem
+A container selected for physical inspection at an Abu Dhabi border waits for an officer, and the result rarely travels: another authority often checks again, and the finding seldom improves the next risk decision. Robots, drones and scanners can inspect faster, but a machine that reports a serious finding straight into a shared record, or into a learning loop, creates a new risk: an unchecked machine error becomes evidence. The questions an engineer will ask are whether a person stays in control of serious findings, whether the evidence can be quietly altered, whether the system runs without outside services, and whether the claims rest on experiments.
+
+## 2. What exists today, with evidence and limits
+Madoun is a shared shipment evidence file with risk lanes, parallel reviews and reusable evidence receipts, built as a pure, event sourced TypeScript engine (`src/engine`) with an English and Arabic interface and a mock REST API (`public/openapi.yaml`). On the seeded synthetic week of 240 shipments, the release model gives a median release time of 27.3 h today against 16.0 h with Madoun (computed by `computeKpis`, protected by the `kpis` fingerprint of `npm run worldhash`). These are model outputs on invented data, not a performance claim. Earlier review rounds are recorded in `docs/reviews/01` to `04`. The architecture and the evidence flow are drawn in `docs/edge-architecture.md`.
+
+## 3. Robotic inspection cell and safe human machine teaming
+- **Officer confirmation is enforced by the engine, not by the interface.** When a robot, drone or scanner reports a finding of severity major or a broken seal, its receipt is created as pending; no authority can rely on it and no learning outcome may be recorded until a customs officer upholds it (receipt becomes verified) or overturns it (receipt revoked with the officer's note). Rule: `requiresOfficerConfirmation` in `src/engine/inspection.ts`; enforcement: `validateEvent` in `src/engine/validate.ts`. A property test over random event sequences, including forged verified receipts, shows no serious machine finding is ever verified without an upheld confirmation (`tests/confirmation.test.ts`). Only the customs role sees the uphold or overturn form.
+- **A gateway contract a robot team can build against.** `GET /api/v1/inspection-tasks` and `POST /api/v1/inspection-tasks/{id}/result` with strict validation and byte caps; ROS 2 message definitions in `gateway/ros2/msg`; a dependency free reference gateway, `gateway/robot.ts`, that posts results with SHA-256 media digests. `tests/gateway.test.ts` drives the gateway through the route handlers from task to result to officer confirmation. Mapping table and a rosbridge example: `docs/robotics-extension.md`.
+- **A preregistered digital twin of the cell.** Predictions were committed before the model existed (`docs/preregistration-cell.md`); `npm run cell` runs four scenarios for 30 seeds (`docs/cell-experiment.md`). Under its assumed parameters, a two robot cell with officer confirmation cut median inspection lead time from 1.51 h to 1.05 h and officer hours per container from 1.50 to 0.14 against officers alone, but missed more violations (9.7% against 5.0%). Thirteen of fourteen predictions hit. The miss is reported as written: frequent robot failures did not slow the median, because officers took the work back, and the cost appeared in the tail (90th percentile 3.53 h against 2.98 h). Every parameter is an assumption, not a measurement.
+
+## 4. Tamper evident evidence
+Receipts already form a SHA-256 hash chain with Ed25519 attestations (`src/engine/evidence.ts`, `src/engine/sign.ts`). This release adds an RFC 6962 Merkle tree over the receipt hashes, signed checkpoints, inclusion proofs and consistency proofs (`src/engine/merkle.ts`, `src/engine/checkpoint.ts`), served at `GET /api/v1/receipts/{id}/proof` and `GET /api/v1/ledger/checkpoint?from=N`. The construction was checked against the RFC text and matches published known answer roots (`tests/merkle.test.ts`). A standalone verifier, `scripts/verify-proof.mjs`, needs only Node and `@noble`; a test shows it accepts a real proof and rejects tampered ones. The Evidence page copies a proof for any receipt. Limits: keys are demo keys unless the development keystore is used, a rewrite is only detectable if someone outside the operator keeps checkpoints, and a receipt's status is not covered by its hash (`docs/decisions.md`, D7).
+
+## 5. Offline and sovereign delivery
+No third party origin is loaded at runtime, and `npm run offline` (`scripts/offline-check.mjs`) preloads an egress guard into the production server, proves the guard works with a blocked canary, uses every page in both languages and every API route, and fails on any outbound attempt. The API has a per instance rate limiter (`src/server/rate-limit.ts`), an optional development keystore with a custody design for HSM or KMS (`docs/key-custody.md`), and an optional non root container (`Dockerfile`, not built in this release). No runtime dependency was added. The threat model is in `docs/threat-model.md`.
+
+## 6. Readiness
+| Part | Level (indicative) | Evidence | Missing |
+|---|---|---|---|
+| Officer confirmation of machine findings | 3 to 4, on synthetic data | `tests/confirmation.test.ts`, accessibility scan of the form | Real officers, measured overturn and error rates |
+| Gateway contract and ROS 2 interface | 3, mock | `tests/gateway.test.ts`, `tests/contract.test.ts` | A real robot, device identity, authentication |
+| Inspection cell model | Simulation only | `docs/cell-experiment.md` | Measured service, detection and fault rates |
+| Merkle checkpoints and offline proofs | 4 for the mechanism | `tests/merkle.test.ts` | Key custody, external checkpoint witnesses |
+| Offline operation | 4 for the build | `scripts/offline-check.mjs` | Container built and scanned, target hosting |
+| Integration with ATLP and MAMAR | 1 to 2, designed only | `docs/integration.md` | Specifications and a test environment |
+
+## 7. A 90 day path to a controlled trial
+- **Days 1 to 30, requirements and laboratory setup.** Agree the hazard list, access model and the confirmation rule with customs and the terminal operator; connect a robot or a hardware in the loop rig to the gateway over ROS 2; move the checkpoint key into an HSM or KMS; add device identity to the gateway route.
+- **Days 31 to 60, laboratory measurement.** Instrumented containers with known ground truth; measure recall, false alarm rate, time per container and fault rate with intervals; feed the measured rates into the cell model in place of the assumptions and rerun it under a new preregistration.
+- **Days 61 to 90, controlled trial beside officers.** Robot results recorded but not used for decisions; paired and blinded comparison as in `docs/research-programme.md`; overturn rates tracked per device; stop on any safety incident or recall materially below officers on a serious finding type.
+
+## 8. What we ask of Edge
+1. Access to an inspection capable robotic platform, or a test rig, for the laboratory phase.
+2. A sceptical engineering review of the safety case, the confirmation rule, the gateway contract and the threat model, including a penetration test of the API.
+3. Advice on hardware backed key custody and device identity for the gateway.
+4. A shared test yard protocol, so that measured rates replace the assumptions in the cell model.
+
+## 9. Honest limits
+All data is synthetic and the ground truth is partly circular with the rules. The API is unauthenticated and its gateway store is in memory only. Signatures use public demo keys. The robot and the cell are simulations whose parameters are assumptions, and the same author built the model and made the predictions. Officer confirmation guards against false machine findings but cannot recover a violation a machine did not report. No penetration test, legal review or field trial has been carried out.
