@@ -1,5 +1,7 @@
 # Review 4: national research-and-strategy engineer (ATRC lens)
 
+> Self review written by the author from an assumed professional viewpoint. The organisation named in the title did not write, commission or endorse it.
+
 Reviewer stance: someone who funds and steers programmes, not features. Asks whether a prototype has a route to a real trial, what would make it stop, how ready each part really is, whether the robotics claim is a research programme or a slogan, and whether the responsible-AI work is a gate or a footnote.
 
 ## Critique of v1.3.0

@@ -1,7 +1,7 @@
 # Optional container image. Nothing in this repository requires Docker; npm scripts run without it.
 # Build:  docker build -t madoun .
 # Run:    docker run --rm --read-only --tmpfs /app/.next/cache --tmpfs /tmp -p 3000:3000 madoun
-# The running app needs no outbound network (proved for the plain build by scripts/offline-check.mjs);
+# The running app needs no outbound network (checked for the plain build, not this image, by scripts/offline-check.mjs);
 # run it on a network with egress blocked. All data is synthetic and the signing key is the public demo key
 # unless MADOUN_LEDGER_KEY_FILE points at a mounted development key (docs/key-custody.md).
 # For anything beyond a demo, pin the base image by digest.
