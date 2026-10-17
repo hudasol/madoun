@@ -19,3 +19,5 @@ export * from './validate';
 export * from './stats';
 export * from './evaluate';
 export * from './cell';
+export * from './merkle';
+export * from './checkpoint';
