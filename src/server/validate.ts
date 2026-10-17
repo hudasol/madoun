@@ -193,7 +193,11 @@ export function validateAssessmentRequest(input: unknown, ctx: ValidationContext
 /* Inspection result posted by an inspection gateway                    */
 /* ------------------------------------------------------------------ */
 
-export const PERFORMER_KINDS: readonly InspectionResult['performerKind'][] = ['robot', 'drone', 'scanner', 'officer'];
+/**
+ * Kinds a gateway may report. 'officer' is deliberately absent: an officer result needs no confirmation, so
+ * accepting it from an unauthenticated device route would let any caller skip the confirmation rule.
+ */
+export const GATEWAY_PERFORMER_KINDS: readonly InspectionResult['performerKind'][] = ['robot', 'drone', 'scanner'];
 export const FINDING_KINDS: readonly InspectionFinding['kind'][] = [
   'none', 'seal-broken', 'undeclared-goods', 'quantity-mismatch', 'damage', 'temperature-excursion', 'prohibited-item',
 ];
@@ -232,7 +236,7 @@ export function validateInspectionResultRequest(input: unknown, ctx: { task: Ins
   noExtra(input, ['performedBy', 'performerKind', 'completedAt', 'seal', 'findings', 'media'], '');
   const performedBy = str(input, 'performedBy', 'performedBy', 120);
   if (performedBy !== undefined && !/^[A-Za-z0-9][A-Za-z0-9:._-]*$/.test(performedBy)) add('performedBy', 'Use letters, digits and : . _ - only.');
-  const performerKind = oneOf(input, 'performerKind', 'performerKind', PERFORMER_KINDS);
+  const performerKind = oneOf(input, 'performerKind', 'performerKind', GATEWAY_PERFORMER_KINDS);
 
   const completedAt = str(input, 'completedAt', 'completedAt', 40);
   if (completedAt !== undefined) {

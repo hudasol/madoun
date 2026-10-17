@@ -1,4 +1,4 @@
-import { getWorld } from '@/server/world';
+import { gatewayWorld } from '@/server/inspection-gateway';
 import { errorResponse, handle, json } from '@/server/http';
 import { currentCheckpoint, ledgerKey } from '@/server/ledger';
 import { consistencyProofBetween } from '@/engine';
@@ -14,11 +14,11 @@ export async function GET(request: Request) {
     const raw = new URL(request.url).searchParams.get('from');
     let consistency;
     if (raw !== null && raw !== '') {
-      const from = Number(raw);
-      if (!Number.isInteger(from) || from < 0 || from > checkpoint.treeSize) {
+      const from = /^[0-9]{1,9}$/.test(raw) ? Number(raw) : NaN;
+      if (!Number.isInteger(from) || from > checkpoint.treeSize) {
         return errorResponse(400, 'invalid_query', `'from' must be an integer between 0 and ${checkpoint.treeSize}.`, { parameter: 'from', value: raw });
       }
-      consistency = consistencyProofBetween(getWorld().world.receipts, from, checkpoint.treeSize);
+      consistency = consistencyProofBetween(gatewayWorld().receipts, from, checkpoint.treeSize);
     }
     return json({
       checkpoint,

@@ -3,7 +3,11 @@ import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { GET as listTasksRoute } from '@/app/api/v1/inspection-tasks/route';
 import { POST as postResult } from '@/app/api/v1/inspection-tasks/[id]/result/route';
-import { apply, inspectionReceiptId, outcomeFromInspection, validateEvent, type MadounEvent } from '@/engine';
+import {
+  LEDGER_SIGNER_ID, apply, computeReceiptHash, demoPublicKeys, inspectionReceiptId, outcomeFromInspection, validateEvent,
+  verifyInclusionProof, type MadounEvent,
+} from '@/engine';
+import { GET as proofRoute } from '@/app/api/v1/receipts/[id]/proof/route';
 import { gatewayWorld, resetGatewayStore } from '@/server/inspection-gateway';
 import { validateInspectionResultRequest } from '@/server/validate';
 import { getWorld } from '@/server/world';
@@ -77,6 +81,24 @@ describe('inspection gateway: task to result to officer confirmation', () => {
     w = apply(w, confirm);
     expect(w.receipts.find((r) => r.id === inspectionReceiptId(task.id))?.status).toBe('verified');
     expect(validateEvent(w, { ...outcome, outcome: { ...(outcome as Extract<MadounEvent, { type: 'OutcomeRecorded' }>).outcome } })).toEqual([]);
+  });
+
+  it('a gateway receipt joins the checkpointed ledger and gets a proof that verifies', async () => {
+    const [task] = await openTasks();
+    expect((await post(task.id, JSON.stringify(clean(task)))).status).toBe(201);
+    const id = inspectionReceiptId(task.id);
+    const pr = await proofRoute(new Request(`${BASE}/api/v1/receipts/${id}/proof`), { params: Promise.resolve({ id }) });
+    expect(pr.status).toBe(200);
+    const proof = await pr.json();
+    expect(proof.treeSize).toBe(getWorld().world.receipts.length + 1);
+    expect(verifyInclusionProof(proof, demoPublicKeys([LEDGER_SIGNER_ID])[LEDGER_SIGNER_ID], (r) => computeReceiptHash(r, r.prevHash))).toEqual({ ok: true });
+  });
+
+  it('the device route refuses an officer result, which would skip the confirmation rule', async () => {
+    const [task] = await openTasks();
+    const res = await post(task.id, JSON.stringify({ ...serious(task), performerKind: 'officer' }));
+    expect(res.status).toBe(422);
+    expect((await res.json()).error.details.map((d: { path: string }) => d.path)).toContain('performerKind');
   });
 
   it('a clean result is verified evidence straight away', async () => {
