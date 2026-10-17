@@ -10,8 +10,9 @@ import {
   type CellMetric, type CellScenarioId, type Interval,
 } from '../src/engine/cell';
 
-const r3 = (x: number) => (Number.isFinite(x) ? Math.round(x * 1000) / 1000 : null);
-const ivJson = (i: Interval) => ({ mean: r3(i.mean), lo: r3(i.lo), hi: r3(i.hi), sd: r3(i.sd), n: i.n });
+// Six decimals: enough that rounding again for display (two decimals) gives the same digits as the report.
+const r6 = (x: number) => (Number.isFinite(x) ? Math.round(x * 1e6) / 1e6 : null);
+const ivJson = (i: Interval) => ({ mean: r6(i.mean), lo: r6(i.lo), hi: r6(i.hi), sd: r6(i.sd), n: i.n });
 
 export function buildCellReport(): { json: string; markdown: string } {
   const x = runCellExperiment(CELL_SEEDS);
