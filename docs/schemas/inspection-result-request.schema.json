@@ -8,7 +8,7 @@
   "required": ["performedBy", "performerKind", "completedAt", "seal", "findings", "media"],
   "properties": {
     "performedBy": { "type": "string", "minLength": 1, "maxLength": 120, "pattern": "^[A-Za-z0-9][A-Za-z0-9:._-]*$" },
-    "performerKind": { "type": "string", "enum": ["robot", "drone", "scanner", "officer"] },
+    "performerKind": { "type": "string", "enum": ["robot", "drone", "scanner"], "description": "Machine performers only. Officer results are recorded in the officer interface, never through this device route." },
     "completedAt": {
       "type": "string",
       "format": "date-time",

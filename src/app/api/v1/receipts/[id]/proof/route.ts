@@ -1,4 +1,4 @@
-import { getWorld } from '@/server/world';
+import { gatewayWorld } from '@/server/inspection-gateway';
 import { handle, json, notFound } from '@/server/http';
 import { currentCheckpoint } from '@/server/ledger';
 import { inclusionProofFor } from '@/engine';
@@ -13,7 +13,7 @@ type Ctx = { params: Promise<{ id: string }> };
 export async function GET(request: Request, ctx: Ctx) {
   return handle(request, async () => {
     const { id } = await ctx.params;
-    const proof = inclusionProofFor(getWorld().world.receipts, id, currentCheckpoint());
+    const proof = inclusionProofFor(gatewayWorld().receipts, id, currentCheckpoint());
     return proof ? json(proof) : notFound('Receipt', id);
   });
 }
