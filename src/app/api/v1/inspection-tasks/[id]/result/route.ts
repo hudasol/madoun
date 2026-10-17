@@ -43,7 +43,7 @@ export async function POST(request: Request, ctx: Ctx) {
         receipt,
         awaitingOfficerConfirmation: out.awaitingOfficerConfirmation,
         next: out.awaitingOfficerConfirmation
-          ? 'A customs officer must uphold or overturn this finding before it becomes verified evidence or a learning outcome.'
+          ? 'A customs officer must uphold or overturn this finding, in the officer interface, before it becomes verified evidence or a learning outcome.'
           : 'Recorded as verified evidence.',
       },
       201,

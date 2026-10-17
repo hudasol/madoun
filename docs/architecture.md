@@ -28,8 +28,15 @@ Madoun is an **event-sourced, deterministic engine** in pure TypeScript (`src/en
 | `reducer.ts` | Applies events to the World |
 | `exceptions.ts` | Missing evidence, expiring evidence, unowned handoff, idle review, authority conflict, with owners and escalation clocks |
 | `learning.ts` | Outcome statistics and human-approved suggestions |
-| `inspection.ts` | Robotics seam: task and result contract, result to evidence |
+| `inspection.ts` | Robotics seam: task and result contract, result to evidence, the officer confirmation rule (`requiresOfficerConfirmation`) |
+| `validate.ts` | Checks every event before it is accepted, including the confirmation rule for inspection receipts and outcomes |
+| `sign.ts` | Ed25519 receipt attestations through a `Signer` interface (demo keyring) |
+| `merkle.ts`, `checkpoint.ts` | RFC 6962 Merkle tree over receipt hashes, signed checkpoints, inclusion and consistency proofs |
+| `cell.ts` | Inspection cell digital twin used by the preregistered experiment (`npm run cell`) |
 | `simulate.ts`, `metrics.ts` | Full-process simulation and KPIs (WCO time-release-study definitions) |
+
+## Server layer (`src/server`) and gateway
+Mock API helpers: the synthetic world built once per process, request validation, the auth seam, the per instance rate limiter, the in-memory inspection gateway store, the ledger checkpoint and the optional development keystore. Everything held there is lost on restart. `gateway/robot.ts` is an external reference gateway that uses only the HTTP contract; `gateway/ros2/msg` holds ROS 2 message definitions. The architecture and evidence flow for v1.5.0 are drawn in [edge-architecture.md](edge-architecture.md).
 
 ## UI
 Client-side store (`src/lib/store.tsx`) builds the synthetic world once, exposes a scrub-able "now", and overlays officer actions as extra events. Pages: control tower, shipments, shipment file, exceptions, evidence, learning, inspection, simulator ("Today vs Madoun"), method. English/Arabic with RTL, light/dark.

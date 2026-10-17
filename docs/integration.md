@@ -2,7 +2,9 @@
 
 > **Everything in this document describes a design plus a mock.** The API under `/api/v1` serves a seeded synthetic dataset, persists nothing and has no authentication. We have not seen ATLP or MAMAR interface specifications; where this document names a capability of those systems it is an assumption to be confirmed, not a fact. Nothing here has been tested against, or approved by, any government system.
 
-The contract is in [`public/openapi.yaml`](../public/openapi.yaml) (OpenAPI 3.1), with JSON Schemas for the two payloads that cross the boundary in [`docs/schemas/`](./schemas/): `assessment-request.schema.json` and `evidence-receipt.schema.json`.
+The contract is in [`public/openapi.yaml`](../public/openapi.yaml) (OpenAPI 3.1), with JSON Schemas for the payloads that cross the boundary in [`docs/schemas/`](./schemas/): `assessment-request.schema.json`, `evidence-receipt.schema.json`, `inspection-task.schema.json` and `inspection-result-request.schema.json`.
+
+Since v1.5.0 the mock also has an inspection gateway seam (`GET /inspection-tasks`, `POST /inspection-tasks/{id}/result`, machine performers only, results held in memory in one process) and evidence proofs (`GET /receipts/{id}/proof`, `GET /ledger/checkpoint`), described in [robotics-extension.md](robotics-extension.md) and [decisions.md](decisions.md). Every route sits behind an in-memory, per instance rate limiter.
 
 ## 1. The adapter pattern
 
@@ -67,10 +69,11 @@ A receipt (`EvidenceReceipt`) says: *this authority verified this kind of eviden
 | Concern | In this mock | A real integration needs |
 |---|---|---|
 | Data | Seeded synthetic world built once per server process | Real filings and receipts; no synthetic fallback in production |
-| Authentication | **None.** `src/server/auth.ts` is a placeholder that allows everything | Mutual TLS between systems, per-client API keys scoped per route, key rotation, rate limits |
+| Authentication | **None.** `src/server/auth.ts` is a placeholder that allows everything | Mutual TLS between systems, per-client API keys scoped per route, key rotation |
+| Rate limits | In-memory token bucket per server instance, keyed on a forgeable forwarded address (decisions.md, D9) | Limits at the gateway keyed on authenticated identity |
 | Authorisation | Every caller sees every receipt, ignoring `sharedWith` | Filter all reads by the caller's authority id and the custodian's policy |
 | Transport | Plain HTTP route handlers in a Next.js app | Government network gateway, TLS termination, approved hosting and data residency |
-| Writes | None; `POST /assessments` computes and discards | Authority-signed receipt submission; officer decisions recorded in the system of record |
+| Writes | `POST /assessments` computes and discards; `POST /inspection-tasks/{id}/result` keeps results in memory in one process only | Authority-signed receipt submission; officer decisions recorded in the system of record |
 | Idempotency | Not needed (nothing persists), no `Idempotency-Key` handling | `Idempotency-Key` on every write, deduplicated per client; stable correlation on `declarationRef` plus a filing version |
 | Event ingestion | The adapter must call the API; no webhooks or streams | Filing-created / amended / cancelled events, receipt issued / revoked events, at-least-once delivery with replay |
 | Queueing | Synchronous request and response | A queue between adapter and Madoun so ATLP/MAMAR availability does not depend on Madoun, and back-pressure at peak filing times |

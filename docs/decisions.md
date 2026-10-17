@@ -48,8 +48,17 @@ Short records of decisions taken while building the Edge proposal package (v1.5.
 
 ## D11. Dockerfile written but not built here
 **Decision.** Add an optional `Dockerfile` (two stages, runs as the unprivileged `node` user, root owned read only files, writable only through tmpfs mounts, telemetry off) that no script requires.
-**Reason and limit.** Docker is installed on the development machine but its daemon was not running, and starting it is outside this work, so the image was not built or run during this session. The no outbound request property was proved for the plain production build (`scripts/offline-check.mjs`), not for the container.
+**Reason and limit.** Docker is installed on the development machine but its daemon was not running, and starting it is outside this work, so the image was not built or run during this session. The offline check (`scripts/offline-check.mjs`) ran against the plain production build, not the container.
 
 ## D12. SBOM kept as generated on the deployment platform
 **Decision.** `docs/sbom.cdx.json` is unchanged in this release. It was regenerated with `npm run sbom` on the development machine and compared: the only differences were platform specific optional binaries (`@img/sharp-win32-x64` and `@next/swc-win32-x64-msvc` instead of their Linux variants). A lockfile based SBOM (`--package-lock-only`) lists every platform's binaries (53 components) and so overstates what ships.
-**Reason.** The site is built and served on Linux (CI and the hosting platform), so the Linux SBOM describes what actually runs. No runtime dependency was added or changed in this release (`package.json` changed only in its scripts), and `npm audit --omit dev` reports 0 vulnerabilities.
+**Reason.** The site is built and served on Linux (CI and the hosting platform), so the Linux SBOM describes what actually runs. No runtime dependency was added or changed in this release (`package.json` changed only in its scripts). `npm audit --omit dev` printed "found 0 vulnerabilities" when run during this release; rerun it to check the current state.
+
+## D13. Independent review: findings not fixed in this release, and why
+An independent reviewer, given only the repository and its constraints, reported 35 findings (docs/reviews/05-edge-proposal.md). All high and medium findings were fixed. These lower findings were not, for the reasons given:
+- **Rate limit key without a proxy** (all callers share one bucket when no forwarding header is present). A Next.js route handler does not expose the socket address, so there is nothing better to key on inside the app. Documented in the threat model; production limits belong at the gateway.
+- **The simulated officer's confirmation note joins English and Arabic in one string.** Notes are free text that an officer types in one language; the simulator's note is shown as written. Deferred; it changes no logic.
+- **The inspection cell button reports success even when the engine rejects every event.** The engine still rejects the events, so no state changes; only the message is optimistic. Deferred to a later interface pass.
+- **The global test timeout of 120 seconds (D1) could hide slow tests.** Kept: performance is tracked by `npm run bench`, which was compared against v1.4.0 for this release, and lowering the timeout would bring back the failures on slower machines that D1 fixed.
+- **No automated test for the proof copy button.** The repository has no component test harness; the button is exercised by the accessibility scan and the offline check, and the proof route it calls is tested.
+- **Module level caches in the engine (`WeakMap` indexes in evidence.ts and plan.ts)** predate this release, are derived from their inputs and do not change results.

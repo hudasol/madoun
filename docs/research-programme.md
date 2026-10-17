@@ -10,7 +10,7 @@ A proposal that sits on top of the product. The product works with officers and 
 ## Readiness ladder
 | Level | Meaning here | Exit evidence |
 |---|---|---|
-| R0 Requirements | Access model, hazard list, legal power to inspect, findings an officer must always confirm | signed requirements with customs and the terminal operator |
+| R0 Requirements | Access model, hazard list, legal power to inspect, and agreement on the confirmation rule (a proposed rule is implemented: an officer confirms any major machine finding or broken seal, decisions.md D2) | signed requirements with customs and the terminal operator |
 | R1 Laboratory | A mock yard with instrumented containers; a ROS 2 gateway subscribing to Madoun tasks and returning results with media hashes | task round trip works; seal and exterior findings measured against known ground truth |
 | R2 Controlled trial | Robot at the terminal beside officers, results not used for decisions | paired comparison on at least 200 containers (see protocol); safety log with no incident |
 | R3 Pilot cell | Robot results used for lane-red containers with officer confirmation | Gate criteria below |
@@ -28,7 +28,7 @@ Hazards: collision with people and vehicles; opening or probing hazardous or col
 Media and findings stay on UAE infrastructure; retention follows customs rules; media references, not media, travel in the shared file; model and gateway code are inspectable by the government.
 
 ## Deliverables
-A ROS 2 gateway; a task and result schema (exists); a test yard protocol; a safety case; an evaluation report with intervals; a decision memo on R3.
+A ROS 2 gateway on real hardware (message definitions and a simulated reference gateway exist in `gateway/`); a task and result schema (exists); a test yard protocol; a safety case; an evaluation report with intervals; a decision memo on R3.
 
 ## Partners (types, not names)
 A research institute with a robotics group; the terminal operator; customs inspection staff; a certification body for machinery safety.
