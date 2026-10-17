@@ -19,3 +19,11 @@ Short records of decisions taken while building the Edge proposal package (v1.5.
 ## D4. Scan scripts find a browser on Windows
 **Decision.** `scripts/a11y.mjs` and `scripts/security-check.mjs` now share `scripts/browser.mjs`, which tries `PW_CHROMIUM`, the Linux CI image paths, the Playwright cache and finally the Microsoft Edge that ships with Windows.
 **Reason.** The scripts only looked under `/opt/pw-browsers` and failed on Windows before scanning anything. Nothing is downloaded and no new dependency is added.
+
+## D5. Robot gateway routes: what they store and what they never do
+**Decision.** `GET /api/v1/inspection-tasks` lists as open the red lane shipments still in flight without a result, the same set the Inspection page shows as waiting. `POST /api/v1/inspection-tasks/{id}/result` stores the task, the result and the receipt in an in-memory list layered over the synthetic snapshot, and never records a learning outcome.
+**Reason.** The conservative reading of "non persistent, in memory" is one process, lost on restart, invisible to the other read routes, so the synthetic snapshot and its fingerprints stay untouched. Recording outcomes is a customs action that, for serious machine findings, must follow an officer's confirmation (D2), so the gateway has no path to the learning loop at all.
+
+## D6. Contract checks without a YAML parser
+**Decision.** `tests/contract.test.ts` checks the OpenAPI file structurally (every route file documented with exactly the methods it exports, every internal `$ref` resolves, version 3.1.0) and checks the inspection result JSON Schema against the server validator (fields, required fields and its own example).
+**Reason.** A full OpenAPI validator would add a dependency for a test only. These checks catch the drift that actually happens (a new route not documented, a renamed schema) with no new package. This is stated as a structural check, not as full schema validation.

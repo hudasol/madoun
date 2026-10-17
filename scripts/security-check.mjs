@@ -7,7 +7,7 @@ import { launchChromium } from './browser.mjs';
 const base = new URL(process.argv[2] ?? 'http://localhost:3000');
 const need = ['content-security-policy', 'x-content-type-options', 'x-frame-options', 'referrer-policy', 'permissions-policy', 'cross-origin-opener-policy'];
 const pages = ['/', '/shipments', '/shipments/SHP-0005', '/exceptions', '/evidence', '/learning', '/inspection', '/simulator', '/pilot', '/method'];
-const apis = ['/api/v1/health', '/api/v1/kpis', '/api/v1/receipts/verify'];
+const apis = ['/api/v1/health', '/api/v1/kpis', '/api/v1/receipts/verify', '/api/v1/inspection-tasks?status=open'];
 let failures = 0;
 const fail = (m) => { failures++; console.log('FAIL', m); };
 
