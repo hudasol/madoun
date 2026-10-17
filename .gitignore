@@ -9,3 +9,6 @@ next-env.d.ts
 .DS_Store
 .next-*
 *.png
+
+# development signing keys (scripts/dev-keystore.mjs); never commit
+.keys/

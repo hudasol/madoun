@@ -70,6 +70,18 @@ Reviews: each round of expert critique and its checklist is in [docs/reviews](do
 
 Docs: [plan](plan.md), [governance](docs/governance.md), [threat model](docs/threat-model.md), [pilot plan](docs/pilot-plan.md), [research programme](docs/research-programme.md), [AI impact assessment](docs/ai-impact-assessment.md), [model card](docs/model-card.md), [evaluation](docs/evaluation.md), [integration](docs/integration.md), [architecture](docs/architecture.md), [data model](docs/data-model.md), [robotics extension](docs/robotics-extension.md), [research notes](docs/research-notes.md), [demo script](docs/demo-script.md).
 
+## Signing keys: demo by default, development keystore optional
+
+> **Warning.** Every signature in this repository is made with **public demo keys** unless you configure otherwise. Anyone can reproduce those keys, so a valid signature or a VALID proof shows that the mechanism works, not who signed.
+
+For development you can sign ledger checkpoints with a private key kept in a file:
+
+```bash
+node scripts/dev-keystore.mjs .keys/ledger.key
+```
+
+Then start the server with `MADOUN_LEDGER_KEY_FILE=.keys/ledger.key`. The `.keys/` folder is ignored by git. **A key in a file is not key custody**: anyone who can read the file can sign. Production keys belong in a hardware security module or a key management service; see [docs/key-custody.md](docs/key-custody.md).
+
 ## Roadmap
 
 See the milestone table in [`plan.md`](plan.md#8-milestones--tags). Each milestone is a git tag.
