@@ -1,4 +1,6 @@
-// Proves that the production build makes no outbound request while every page and API route is used.
+// Checks that the production build makes no outbound attempt that the egress guard can observe (DNS lookups,
+// TCP and TLS connections, UDP sends from Node) while every page and every API route is used successfully.
+// It does not see traffic from native add-ons or child processes started without the guard.
 //
 //   npm run build
 //   node scripts/offline-check.mjs [port]
@@ -27,6 +29,12 @@ const serverLog = path.join(tmp, 'server-egress.jsonl');
 const canaryLog = path.join(tmp, 'canary-egress.jsonl');
 let failures = 0;
 const fail = (m) => { failures++; console.log('FAIL', m); };
+
+/** An adapter style declaration (no internal ids) built from a shipment the API returns, so the engine really runs. */
+function adapterPayload(s) {
+  const { id: _id, consignments, ...rest } = s;
+  return { ...rest, consignments: consignments.map(({ id: _c, items, ...c }) => ({ ...c, items: items.map(({ id: _i, ...i }) => i) })) };
+}
 
 // 1. Canary.
 execFileSync(process.execPath, ['--import', guard, '-e', "fetch('https://example.org/').then(() => process.exit(3), () => process.exit(0))"], {
@@ -98,7 +106,7 @@ try {
     ['GET /exceptions', await get('/api/v1/exceptions')],
     ['GET /kpis', await get('/api/v1/kpis')],
     ['GET /inspection-tasks', await get('/api/v1/inspection-tasks?status=completed')],
-    ['POST /assessments', await post('/api/v1/assessments', {})],
+    ['POST /assessments', await post('/api/v1/assessments', adapterPayload((await (await fetch(`${base}/api/v1/shipments/${shipment}`)).json()).shipment))],
   ];
   if (tasks[0]) {
     calls.push(['POST /inspection-tasks/{id}/result', await post(`/api/v1/inspection-tasks/${tasks[0].id}/result`, {
@@ -106,7 +114,7 @@ try {
       findings: [{ kind: 'none', severity: 'info', note: 'offline check' }], media: [],
     })]);
   }
-  for (const [name, status] of calls) if (status >= 500) fail(`${name} answered ${status}`);
+  for (const [name, status] of calls) if (status !== (name.startsWith('POST /inspection') ? 201 : 200)) fail(`${name} answered ${status}; every route must succeed for the check to mean anything`);
   console.log(`exercised ${pages.length} pages in 2 languages and ${calls.length} API calls: ${calls.map(([n, s]) => `${n} ${s}`).join(', ')}`);
 } catch (e) {
   fail(String(e));
@@ -122,5 +130,5 @@ if (!loaded.some((l) => l.target.includes('next'))) fail('the egress guard was n
 else console.log(`guard active in ${loaded.length} server process(es)`);
 if (attempts.length) fail(`the server tried to reach other hosts ${attempts.length} time(s): ${[...new Set(attempts.map((l) => l.target))].join(', ')}`);
 fs.rmSync(tmp, { recursive: true, force: true });
-console.log(failures ? `${failures} failure(s)` : 'OK: zero outbound requests from the server and the browser while every page and API route was used.');
+console.log(failures ? `${failures} failure(s)` : 'OK: no outbound attempt observed by the guard in the server, and no other origin requested by the browser, while every page and API route was used successfully.');
 process.exit(failures ? 1 : 0);
