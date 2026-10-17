@@ -1,4 +1,4 @@
-import { requiresOfficerConfirmation } from './inspection';
+import { inspectionReceiptId, requiresOfficerConfirmation } from './inspection';
 import type { MadounEvent, ShipmentFile, World } from './types';
 
 /** True when the file holds a serious machine finding that no officer has confirmed yet. */
@@ -37,11 +37,18 @@ export function validateEvent(world: World, ev: MadounEvent): string[] {
       const r = ev.receipt;
       if (world.receipts.some((x) => x.id === r.id)) bad(`Receipt '${r.id}' already exists.`);
       if (!(Date.parse(r.validUntil) > Date.parse(r.validFrom))) bad('validUntil must be after validFrom.');
-      // A serious machine finding becomes verified evidence only after an officer upholds it.
-      if (r.type === 'inspection-result' && r.status === 'verified' && r.scope.shipmentId) {
-        const f = world.shipments[r.scope.shipmentId];
-        if (f?.inspectionResult?.taskId === r.subjectRef && requiresOfficerConfirmation(f.inspectionResult) && f.inspectionConfirmation?.decision !== 'upheld') {
-          bad('A serious machine finding can only be issued as verified after an officer upholds it.');
+      // An inspection receipt must belong to a recorded result, carry that result's ids, and have exactly the
+      // status the confirmation rule gives it. The status a client supplies is never trusted.
+      if (r.type === 'inspection-result') {
+        const f = r.scope.level === 'shipment' && r.scope.shipmentId ? world.shipments[r.scope.shipmentId] : undefined;
+        const res = f?.inspectionResult;
+        if (!res) bad('An inspection receipt needs a recorded inspection result for its shipment.');
+        else {
+          if (r.id !== inspectionReceiptId(res.taskId) || r.subjectRef !== res.taskId) bad('An inspection receipt must carry the id and subject of its inspection result.');
+          const decision = f.inspectionConfirmation?.decision;
+          if (decision === 'overturned') bad('The finding was overturned; it cannot be issued as evidence.');
+          const expected = requiresOfficerConfirmation(res) && decision !== 'upheld' ? 'pending' : 'verified';
+          if (r.status !== expected) bad(`This inspection receipt must be issued as ${expected}.`);
         }
       }
       break;
@@ -86,6 +93,10 @@ export function validateEvent(world: World, ev: MadounEvent): string[] {
     case 'InspectionCompleted':
       needFile(ev.result.shipmentId);
       if (!world.shipments[ev.result.shipmentId]?.inspectionTask) bad('No inspection was requested for this shipment.');
+      // One result per shipment: a second result could otherwise inherit the first one's confirmation.
+      if (world.shipments[ev.result.shipmentId]?.inspectionResult) bad('An inspection result is already recorded for this shipment.');
+      if (world.shipments[ev.result.shipmentId]?.outcome) bad('The learning outcome is already recorded; a later result would bypass confirmation.');
+      if (world.shipments[ev.result.shipmentId]?.inspectionTask && ev.result.taskId !== world.shipments[ev.result.shipmentId]!.inspectionTask!.id) bad('The result must answer the requested task.');
       break;
     case 'InspectionConfirmed': {
       needFile(ev.shipmentId);
@@ -103,6 +114,10 @@ export function validateEvent(world: World, ev: MadounEvent): string[] {
       needFile(ev.outcome.shipmentId);
       // The learning loop only hears about a serious machine finding once a person has confirmed it.
       if (awaitingOfficerConfirmation(world.shipments[ev.outcome.shipmentId])) bad('Outcome cannot be recorded before an officer confirms the machine finding.');
+      {
+        const f = world.shipments[ev.outcome.shipmentId];
+        if (f?.inspectionTask && !f.inspectionResult) bad('Outcome cannot be recorded while a requested inspection has no result.');
+      }
       break;
     case 'RuleSuggestionApproved':
       nonEmpty(ev.key, 'key', 200);

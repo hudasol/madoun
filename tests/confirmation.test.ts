@@ -157,31 +157,58 @@ describe('property: no serious machine finding is ever verified without a confir
     findings: fc.array(findingArb, { minLength: 1, maxLength: 3 }),
     intact: fc.boolean(),
   }).map(({ performerKind, findings, intact }) => result({ performerKind, findings, seal: { id: 'S', intact } }));
-  // Arbitrary attempts an adversarial or careless client could make, in any order.
-  const stepArb = fc.constantFrom('confirm-upheld', 'confirm-overturned', 'outcome', 'forge-verified-receipt', 'blank-note');
+  // Arbitrary attempts an adversarial or careless client could make, in any order, including the shapes an
+  // independent review found: a receipt issued before the result, receipts under other ids, a second result.
+  const stepArb = fc.constantFrom(
+    'complete', 'complete-other', 'issue', 'issue-verified', 'issue-pending', 'issue-other-id', 'issue-other-subject',
+    'confirm-upheld', 'confirm-overturned', 'outcome', 'blank-note',
+  );
+  const other = result({ performerKind: 'drone', seal: { id: 'S2', intact: false }, findings: [finding('major', 'prohibited-item')], completedAt: LATER });
 
   it('holds for every sequence of validated events, under both reducers', () => {
     fc.assert(
-      fc.property(resultArb, fc.boolean(), fc.array(stepArb, { maxLength: 6 }), (r, issueFirst, steps) => {
-        const events: MadounEvent[] = upTo(r).slice(0, 3);
-        if (issueFirst) events.push(upTo(r)[3]);
+      fc.property(resultArb, fc.array(stepArb, { maxLength: 8 }), (r, steps) => {
+        const events: MadounEvent[] = upTo(r).slice(0, 2); // registered and requested; everything else is adversarial
+        const receipt = (over: Partial<ReturnType<typeof resultToReceiptDraft>>, base = r): MadounEvent =>
+          ({ type: 'ReceiptIssued', at: LATER, receipt: { ...resultToReceiptDraft(base), ...over } });
         for (const s of steps) {
+          if (s === 'complete') events.push({ type: 'InspectionCompleted', at: r.completedAt, result: r });
+          if (s === 'complete-other') events.push({ type: 'InspectionCompleted', at: LATER, result: other });
+          if (s === 'issue') events.push(receipt({}));
+          if (s === 'issue-verified') events.push(receipt({ status: 'verified' }));
+          if (s === 'issue-pending') events.push(receipt({ status: 'pending' }));
+          if (s === 'issue-other-id') events.push(receipt({ id: 'rcpt-forged', status: 'verified' }));
+          if (s === 'issue-other-subject') events.push(receipt({ id: 'rcpt-forged-2', subjectRef: 'elsewhere', status: 'verified' }));
           if (s === 'confirm-upheld') events.push(confirm('upheld'));
           if (s === 'confirm-overturned') events.push(confirm('overturned'));
           if (s === 'outcome') events.push(outcome(r));
           if (s === 'blank-note') events.push(confirm('upheld', ' '));
-          if (s === 'forge-verified-receipt') events.push({ type: 'ReceiptIssued', at: LATER, receipt: { ...resultToReceiptDraft(r), status: 'verified' } });
         }
         const { world } = feed(events);
-        const accepted = world.log;
-        const upheld = accepted.some((e) => e.type === 'InspectionConfirmed' && e.decision === 'upheld');
-        const rc = world.receipts.find((x) => x.id === inspectionReceiptId(r.taskId));
-        if (requiresOfficerConfirmation(r) && rc?.status === 'verified' && !upheld) return false;
-        if (requiresOfficerConfirmation(r) && world.shipments[S.id].outcome && !world.shipments[S.id].inspectionConfirmation) return false;
-        return JSON.stringify(replay(accepted)) === JSON.stringify(world);
+        const f = world.shipments[S.id];
+        const res = f.inspectionResult;
+        const decision = f.inspectionConfirmation?.decision;
+        const inspectionReceipts = world.receipts.filter((x) => x.type === 'inspection-result');
+        // Any inspection receipt belongs to the recorded result, under its own id.
+        if (inspectionReceipts.some((x) => !res || x.id !== inspectionReceiptId(res.taskId) || x.subjectRef !== res.taskId)) return false;
+        if (res && requiresOfficerConfirmation(res)) {
+          if (inspectionReceipts.some((x) => x.status === 'verified') && decision !== 'upheld') return false;
+          if (f.outcome && !decision) return false;
+        }
+        if (decision === 'overturned' && inspectionReceipts.some((x) => x.status !== 'revoked')) return false;
+        return JSON.stringify(replay(world.log)) === JSON.stringify(world);
       }),
-      { numRuns: 400 },
+      { numRuns: 1000 },
     );
+  });
+
+  it('an overturn revokes the receipt whatever its status, and a second result is rejected', () => {
+    const r = result();
+    let w = feed(upTo(r)).world;
+    expect(validateEvent(w, { type: 'InspectionCompleted', at: LATER, result: other })).not.toEqual([]);
+    w = feed([confirm('overturned')], w).world;
+    expect(w.receipts.find((x) => x.id === inspectionReceiptId(r.taskId))?.status).toBe('revoked');
+    expect(validateEvent(w, { type: 'ReceiptIssued', at: LATER, receipt: { ...resultToReceiptDraft(r), id: 'rcpt-again' } })).not.toEqual([]);
   });
 
   it('holds across the whole simulated history, and every confirmation lands inside the release window', () => {

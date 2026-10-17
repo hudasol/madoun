@@ -112,6 +112,8 @@ function fileEvent(f: ShipmentFile, ev: MadounEvent): ShipmentFile {
         audit: audit(f, ev.at, ev.task.requestedBy, 'Inspection task requested', 'طلب مهمة فحص'),
       };
     case 'InspectionCompleted':
+      // The first result stands; a second one in history would otherwise inherit the first confirmation.
+      if (f.inspectionResult) return f;
       return {
         ...f,
         inspectionResult: ev.result,
@@ -167,10 +169,13 @@ function confirmFile(f: ShipmentFile, ev: Confirmation): ShipmentFile {
   };
 }
 
-/** Upheld makes a pending inspection receipt verified; overturned revokes it with the officer's note as reason. */
+/**
+ * Upheld makes a pending inspection receipt verified. Overturned revokes the receipt whatever its status,
+ * with the officer's note as reason, so no path can leave an overturned finding standing as evidence.
+ */
 function confirmReceipt(r: EvidenceReceipt, ev: Confirmation): EvidenceReceipt {
-  if (r.status !== 'pending') return r;
-  return ev.decision === 'upheld' ? { ...r, status: 'verified' } : { ...r, status: 'revoked', revokedReason: ev.note };
+  if (ev.decision === 'overturned') return r.status === 'revoked' ? r : { ...r, status: 'revoked', revokedReason: ev.note };
+  return r.status === 'pending' ? { ...r, status: 'verified' } : r;
 }
 
 function resolveInFile(f: ShipmentFile, ev: Extract<MadounEvent, { type: 'ExceptionResolved' }>): ShipmentFile {
