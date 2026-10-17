@@ -15,7 +15,8 @@
     "sbom": "npm sbom --sbom-format cyclonedx --omit dev > docs/sbom.cdx.json",
     "bench": "tsx scripts/bench.ts",
     "worldhash": "tsx scripts/worldhash.ts",
-    "eval": "tsx scripts/eval.ts"
+    "eval": "tsx scripts/eval.ts",
+    "cell": "tsx scripts/cell.ts"
   },
   "dependencies": {
     "@fontsource-variable/space-grotesk": "^5.3.0",
