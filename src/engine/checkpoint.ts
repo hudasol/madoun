@@ -9,9 +9,10 @@
  * later checkpoint extends an earlier one, so history cannot be rewritten between two checkpoints that
  * someone kept.
  *
- * What a proof does NOT cover: a receipt's status (verified, pending, revoked) is not part of its hash,
- * so a proof shows the receipt was recorded with this content, not its current status. Status changes
- * are events in the audit log.
+ * What a proof does NOT cover: only HASHED_RECEIPT_FIELDS are in the hash. The summary text, the status
+ * (verified, pending, revoked) and the revocation reason are not, so a proof shows the receipt was recorded
+ * with those fields, not what its summary says or whether it is still valid. Status changes are events in
+ * the audit log.
  *
  * DEMO ONLY: the checkpoint key comes from demoSigner, whose secret is derived from a public string.
  */
@@ -84,8 +85,15 @@ export function inclusionProofFor(ledger: EvidenceReceipt[], receiptId: string, 
 
 export type ProofCheck = { ok: true } | { ok: false; reason: string };
 
+/**
+ * Receipt fields covered by the hash, and so by a proof. Everything else (summary text, status, revocation
+ * reason, reuse log) is not covered: a proof says the receipt was recorded with these fields, nothing more.
+ */
+export const HASHED_RECEIPT_FIELDS = ['id', 'type', 'subjectRef', 'issuer', 'verifiedBy', 'method', 'scope', 'validFrom', 'validUntil', 'sharedWith'] as const;
+
 /** Engine side verification of an inclusion proof (scripts/verify-proof.mjs does the same with no app code). */
-export function verifyInclusionProof(p: InclusionProof, publicKeyHex: string, recomputeReceiptHash: (r: EvidenceReceipt) => string): ProofCheck {
+export function verifyInclusionProof(p: InclusionProof, publicKeyHex: string, recomputeReceiptHash: (r: EvidenceReceipt) => string, origin = LEDGER_ORIGIN): ProofCheck {
+  if (p.checkpoint.origin !== origin) return { ok: false, reason: 'checkpoint is for another ledger' };
   if (!verifyCheckpointSignature(p.checkpoint, publicKeyHex)) return { ok: false, reason: 'checkpoint signature does not verify' };
   if (p.treeSize !== p.checkpoint.treeSize) return { ok: false, reason: 'tree size differs from the checkpoint' };
   if (recomputeReceiptHash(p.receipt) !== p.receipt.hash) return { ok: false, reason: 'receipt content does not match its hash' };

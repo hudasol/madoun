@@ -7,7 +7,7 @@ import { sha256 } from '@noble/hashes/sha2.js';
 import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js';
 import { describe, expect, it } from 'vitest';
 import {
-  LEDGER_SIGNER_ID, computeReceiptHash, consistencyProof, consistencyProofBetween, demoPublicKeys, demoSigner, inclusionProof,
+  EMPTY_ROOT, HASHED_RECEIPT_FIELDS, LEDGER_SIGNER_ID, computeReceiptHash, consistencyProof, consistencyProofBetween, demoPublicKeys, demoSigner, inclusionProof,
   inclusionProofFor, leafHash, makeCheckpoint, merkleRoot, nodeHash, verifyChain, verifyCheckpointSignature, verifyConsistency,
   verifyConsistencyProof, verifyInclusion, verifyInclusionProof, type EvidenceReceipt, type InclusionProof,
 } from '@/engine';
@@ -100,6 +100,13 @@ describe('RFC 6962 Merkle tree', () => {
     }), { numRuns: 300 });
   });
 
+  it('the empty tree is consistent with any tree only under the empty root', () => {
+    const leaves = [leafHash(Uint8Array.of(1)), leafHash(Uint8Array.of(2))];
+    expect(verifyConsistency(0, 2, EMPTY_ROOT, merkleRoot(leaves), [])).toBe(true);
+    expect(verifyConsistency(0, 2, flip(EMPTY_ROOT), merkleRoot(leaves), [])).toBe(false);
+    expect(verifyConsistency(0, 2, EMPTY_ROOT, merkleRoot(leaves), [leaves[0]])).toBe(false);
+  });
+
   it('a rewritten history is not consistent with an earlier root', () => {
     const leaves = Array.from({ length: 12 }, (_, i) => leafHash(Uint8Array.of(i)));
     const rewritten = leaves.map((l, i) => (i === 3 ? leafHash(Uint8Array.of(99)) : l));
@@ -139,11 +146,16 @@ describe('signed checkpoints and receipt proofs over the evidence ledger', () =>
     expect(bad({ ...p, inclusionPath: p.inclusionPath.map((h, i) => (i === 2 ? h.replace(/^./, (c) => (c === '0' ? '1' : '0')) : h)) })).toBe(false);
     expect(bad({ ...p, leafIndex: p.leafIndex + 1 })).toBe(false);
     expect(bad({ ...p, checkpoint: { ...p.checkpoint, rootHash: '0'.repeat(64) } })).toBe(false);
+    // A checkpoint of another ledger, even one signed with the same key, is rejected.
+    const foreign = makeCheckpoint(ledger, now, demoSigner(LEDGER_SIGNER_ID), 'some-other-ledger');
+    expect(bad(inclusionProofFor(ledger, ledger[123].id, foreign)!)).toBe(false);
   });
 
-  it('documents the limit: status is not hashed, so a proof says nothing about current status', () => {
+  it('documents the limit: only the hashed fields are proven, not summary text or status', () => {
     const p = inclusionProofFor(ledger, ledger[5].id, checkpoint)!;
     expect(verifyInclusionProof({ ...p, receipt: { ...p.receipt, status: 'revoked' } }, key, recompute).ok).toBe(true);
+    expect(verifyInclusionProof({ ...p, receipt: { ...p.receipt, summary: 'edited' } }, key, recompute).ok).toBe(true);
+    expect([...HASHED_RECEIPT_FIELDS]).toEqual(['id', 'type', 'subjectRef', 'issuer', 'verifiedBy', 'method', 'scope', 'validFrom', 'validUntil', 'sharedWith']);
   });
 
   it('a later checkpoint is provably consistent with an earlier one', () => {
@@ -162,6 +174,7 @@ describe('signed checkpoints and receipt proofs over the evidence ledger', () =>
     expect(verifyConsistencyProof(b.consistency)).toBe(true);
     expect((await checkpointRoute(new Request('http://x/api/v1/ledger/checkpoint?from=-1'))).status).toBe(400);
     expect((await checkpointRoute(new Request('http://x/api/v1/ledger/checkpoint?from=1.5'))).status).toBe(400);
+    for (const odd of ['0x10', '1e1', ' 5', '5 ']) expect((await checkpointRoute(new Request(`http://x/api/v1/ledger/checkpoint?from=${encodeURIComponent(odd)}`))).status, odd).toBe(400);
     const id = ledger[42].id;
     const pr = await proofRoute(new Request(`http://x/api/v1/receipts/${id}/proof`), { params: Promise.resolve({ id }) });
     expect(pr.status).toBe(200);
@@ -185,6 +198,8 @@ describe('signed checkpoints and receipt proofs over the evidence ledger', () =>
     const ok = run(good);
     expect(ok.code).toBe(0);
     expect(ok.out).toMatch(/^VALID/);
+    expect(ok.out).toContain('Not proven: summary, summaryAr, status, revokedReason');
+    expect(run(inclusionProofFor(ledger, ledger[77].id, makeCheckpoint(ledger, now, demoSigner(LEDGER_SIGNER_ID), 'other-ledger'))).code).toBe(1);
     for (const tampered of [
       { ...good, receipt: { ...good.receipt, verifiedBy: 'nobody' } },
       { ...good, leafIndex: good.leafIndex + 1 },
