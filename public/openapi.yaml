@@ -184,6 +184,59 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/EvidenceReceipt' }
         '404': { $ref: '#/components/responses/NotFound' }
+  /receipts/{id}/proof:
+    get:
+      tags: [Evidence]
+      operationId: getReceiptInclusionProof
+      summary: RFC 6962 inclusion proof for one receipt against the latest signed checkpoint
+      description: |
+        Every receipt's chain hash is a leaf of an RFC 6962 Merkle tree (leaf hash SHA-256(0x00 || hash),
+        node hash SHA-256(0x01 || left || right)). The proof carries the receipt, its leaf index, the audit
+        path and the signed checkpoint. Verify it offline with `node scripts/verify-proof.mjs proof.json <key>`,
+        using a public key obtained from a channel you trust, not from this response. A proof covers the
+        receipt's hashed content, not its current status. **Demo key.**
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Inclusion proof
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InclusionProof' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /ledger/checkpoint:
+    get:
+      tags: [Evidence]
+      operationId: getLedgerCheckpoint
+      summary: Latest signed checkpoint of the evidence ledger, with an optional consistency proof
+      description: |
+        A checkpoint signs, with Ed25519, the line based message
+        `madoun/checkpoint/v1\n{origin}\n{treeSize}\n{rootHash}\n{timestamp}\n`. With `from=N` the response
+        also proves (RFC 6962 section 2.1.2) that the tree of the first N receipts is a prefix of the current
+        tree, so a checkpoint kept earlier can be checked against a later one. **Demo key:** derived from a
+        public string; it demonstrates the mechanism, not identity.
+      parameters:
+        - name: from
+          in: query
+          schema: { type: integer, minimum: 0 }
+      responses:
+        '200':
+          description: Checkpoint and public key
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [checkpoint, publicKey, algorithm, demoKey]
+                properties:
+                  checkpoint: { $ref: '#/components/schemas/Checkpoint' }
+                  publicKey: { type: string, pattern: '^[0-9a-f]{64}$' }
+                  algorithm: { type: string, const: Ed25519 }
+                  demoKey: { type: boolean, const: true }
+                  consistency: { $ref: '#/components/schemas/ConsistencyProof' }
+        '400': { $ref: '#/components/responses/BadQuery' }
   /exceptions:
     get:
       tags: [Operations]
@@ -482,6 +535,38 @@ components:
             details:
               type: array
               items: { $ref: '#/components/schemas/ValidationIssue' }
+    Checkpoint:
+      type: object
+      required: [origin, treeSize, rootHash, timestamp, signer, signature]
+      properties:
+        origin: { type: string }
+        treeSize: { type: integer, minimum: 0 }
+        rootHash: { type: string, pattern: '^[0-9a-f]{64}$' }
+        timestamp: { type: string, format: date-time }
+        signer: { type: string }
+        signature: { type: string, description: Hex Ed25519 signature. }
+    InclusionProof:
+      type: object
+      required: [format, receipt, leafIndex, treeSize, inclusionPath, checkpoint]
+      properties:
+        format: { type: string, const: madoun-inclusion-proof/v1 }
+        receipt: { $ref: '#/components/schemas/EvidenceReceipt' }
+        leafIndex: { type: integer, minimum: 0 }
+        treeSize: { type: integer, minimum: 1 }
+        inclusionPath: { type: array, items: { type: string, pattern: '^[0-9a-f]{64}$' } }
+        checkpoint: { $ref: '#/components/schemas/Checkpoint' }
+    ConsistencyProof:
+      type: object
+      required: [format, first, second, path]
+      properties:
+        format: { type: string, const: madoun-consistency-proof/v1 }
+        first:
+          type: object
+          properties: { treeSize: { type: integer }, rootHash: { type: string } }
+        second:
+          type: object
+          properties: { treeSize: { type: integer }, rootHash: { type: string } }
+        path: { type: array, items: { type: string, pattern: '^[0-9a-f]{64}$' } }
     InspectionTask:
       type: object
       required: [id, shipmentId, containerIds, requestedAt, requestedBy, scope, priority, constraints]
