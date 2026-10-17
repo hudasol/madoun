@@ -1,6 +1,9 @@
 import type { Directory } from './directory';
 import { detectExceptions } from './exceptions';
-import { createInspectionTask, outcomeFromInspection, resultToReceiptDraft, simulateInspectionCell, type Truth } from './inspection';
+import {
+  CONFIRMATION_DELAY_HOURS, createInspectionTask, outcomeFromInspection, requiresOfficerConfirmation, resultToReceiptDraft,
+  simulateInspectionCell, type Truth,
+} from './inspection';
 import { planShipment } from './plan';
 import { WorldBuilder, emptyWorld, replay } from './reducer';
 import { sha256Hex } from './hash';
@@ -8,6 +11,7 @@ import { makeRng } from './rng';
 import { isRandomAudit } from './risk';
 import { addHours, ms, round1 } from './time';
 import type {
+  ConfirmationDecision,
   EvidenceReceipt,
   EvidenceType,
   InspectionResult,
@@ -203,6 +207,7 @@ export function simulate(input: SimInput): SimOutput {
     // ---- Inspection / targeted checks ----
     const releaseStart = startAt.get('cus-release') ?? madounHours;
     let result: InspectionResult | undefined;
+    let confirmation: ConfirmationDecision | undefined;
     const truthForInspection = { violation: t.violation };
     if (lane === 'red') {
       const task = createInspectionTask(shipment, plan.assessment, addHours(filedAt, releaseStart - laneExtra));
@@ -210,6 +215,22 @@ export function simulate(input: SimInput): SimOutput {
       result = simulateInspectionCell(task, truthForInspection, rng, task.requestedAt, { id: `cell-${rng.pick(['A1', 'A2', 'B1'])}`, kind: rng.pick(['robot', 'robot', 'drone', 'scanner'] as const) });
       push({ type: 'InspectionCompleted', at: result.completedAt, result });
       push({ type: 'ReceiptIssued', at: result.completedAt, receipt: resultToReceiptDraft(result) });
+      // Human confirmation of a serious machine finding. Modelling assumption: the duty officer reviews it
+      // CONFIRMATION_DELAY_HOURS after the result, which is inside the red-lane release window (the release
+      // review starts LANE_EXTRA_HOURS.red after the task), so release times do not move. The officer is
+      // assumed to establish the truth on site: a real violation is upheld, anything else is overturned.
+      // No random draw is used, so every other draw in the simulation stays exactly as it was.
+      if (requiresOfficerConfirmation(result)) {
+        confirmation = t.violation ? 'upheld' : 'overturned';
+        push({
+          type: 'InspectionConfirmed',
+          at: addHours(result.completedAt, CONFIRMATION_DELAY_HOURS),
+          shipmentId: shipment.id,
+          officerId: 'adc:duty',
+          decision: confirmation,
+          note: confirmation === 'upheld' ? 'Finding checked on site and upheld (تم التحقق في الموقع وتأكيد الملاحظة)' : 'Finding checked on site and not found (تم التحقق في الموقع ولم تثبت الملاحظة)',
+        });
+      }
     } else if (lane === 'amber') {
       const task = createInspectionTask(shipment, plan.assessment, addHours(filedAt, Math.max(0, releaseStart - laneExtra)));
       result = simulateInspectionCell(task, truthForInspection, rng, task.requestedAt, { id: `${plan.assessment.recommendedChecks[0]?.authorityId ?? 'adc'}:officer`, kind: 'officer' }, { detectionRate: 0.6, falsePositiveRate: 0.02 });
@@ -234,7 +255,7 @@ export function simulate(input: SimInput): SimOutput {
     push({
       type: 'OutcomeRecorded',
       at: outcomeAt,
-      outcome: outcomeFromInspection(shipment, plan.assessment, result, missingAtFirst, outcomeAt, sampling),
+      outcome: outcomeFromInspection(shipment, plan.assessment, result, missingAtFirst, outcomeAt, sampling, confirmation),
     });
     push({ type: 'ShipmentCleared', at: clearedAt, shipmentId: shipment.id, preArrival: clearedAtHours <= lead });
 
