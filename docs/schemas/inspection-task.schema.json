@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://madoun.example/schemas/inspection-task.schema.json",
+  "title": "InspectionTask",
+  "description": "One item of GET /api/v1/inspection-tasks. What Madoun asks an inspection performer to do. Scope and constraints are derived from the risk assessment.",
+  "type": "object",
+  "required": ["id", "shipmentId", "containerIds", "requestedAt", "requestedBy", "scope", "priority", "constraints"],
+  "properties": {
+    "id": { "type": "string" },
+    "shipmentId": { "type": "string" },
+    "containerIds": { "type": "array", "items": { "type": "string" } },
+    "requestedAt": { "type": "string", "format": "date-time" },
+    "requestedBy": { "type": "string" },
+    "scope": { "type": "array", "items": { "type": "string" } },
+    "scopeAr": { "type": "array", "items": { "type": "string" }, "description": "Arabic twin of scope, same order." },
+    "priority": { "type": "string", "enum": ["normal", "high"] },
+    "constraints": { "type": "array", "items": { "type": "string" } }
+  }
+}

@@ -26,6 +26,7 @@ tags:
   - name: Evidence
   - name: Operations
   - name: Adapter
+  - name: Inspection
 paths:
   /health:
     get:
@@ -300,6 +301,112 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ValidationError' }
+  /inspection-tasks:
+    get:
+      tags: [Inspection]
+      operationId: listInspectionTasks
+      summary: Inspection tasks for a robot, drone or scanner gateway to poll
+      description: |
+        Open tasks are shipments still in flight whose effective lane is red and that have no inspection
+        result yet. Completed tasks have a result. **Mock:** results posted to this API are held in memory
+        in one server process only, are lost on restart and are not shared between instances (`persisted`
+        is always `false`). A reference gateway that plays a robot is in `gateway/robot.ts`.
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [open, completed], default: open }
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        '200':
+          description: A page of inspection tasks
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, persisted, data, page]
+                properties:
+                  status: { type: string, enum: [open, completed] }
+                  persisted: { type: boolean, const: false }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/InspectionTask' }
+                  page: { $ref: '#/components/schemas/PageInfo' }
+        '400': { $ref: '#/components/responses/BadQuery' }
+  /inspection-tasks/{id}/result:
+    post:
+      tags: [Inspection]
+      operationId: postInspectionResult
+      summary: Post the result of an open inspection task (gateway endpoint)
+      description: |
+        Records the task, the result and its evidence receipt. Validation is strict: unknown fields are
+        rejected at every level, the body is capped at 65536 bytes, at most 50 findings and 20 media
+        digests. **Safe human machine teaming:** when a robot, drone or scanner reports a finding of
+        severity `major` or a broken seal, the receipt is created as `pending` and
+        `awaitingOfficerConfirmation` is `true`. Only a customs officer can then uphold it (the receipt
+        becomes `verified`) or overturn it (the receipt is revoked with the officer's note). This
+        endpoint never records a learning outcome. **Mock:** stored in memory only and lost on restart.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, maxLength: 120 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InspectionResultRequest' }
+            example:
+              performedBy: cell-G1
+              performerKind: robot
+              completedAt: '2026-10-09T03:30:00.000Z'
+              seal: { id: SEAL-0027, intact: true }
+              findings:
+                - { kind: undeclared-goods, severity: major, note: Load does not match the declared goods }
+              media:
+                - { ref: media/insp-SHP-0027/overview.jpg, sha256: 3f0a1c9e5b7d2468ace013579bdf2468ace013579bdf2468ace013579bdf2468, bytes: 4096 }
+      responses:
+        '201':
+          description: Result recorded in the in-memory mock store
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [persisted, storage, task, result, receipt, awaitingOfficerConfirmation, next]
+                properties:
+                  persisted: { type: boolean, const: false }
+                  storage: { type: string }
+                  task: { $ref: '#/components/schemas/InspectionTask' }
+                  result: { type: object, description: The stored InspectionResult with taskId and shipmentId added from the task. }
+                  receipt: { $ref: '#/components/schemas/EvidenceReceipt' }
+                  awaitingOfficerConfirmation: { type: boolean }
+                  next: { type: string }
+        '400':
+          description: Body is not valid JSON (`invalid_json`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorShape' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: The task already has a result (`conflict`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorShape' }
+        '413':
+          description: Body larger than 65536 bytes (`payload_too_large`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorShape' }
+        '415':
+          description: Content-Type is not JSON (`unsupported_media_type`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorShape' }
+        '422':
+          description: Body parsed but failed validation, or the engine rejected the events. `error.details` lists every problem.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ValidationError' }
 components:
   parameters:
     page:
@@ -351,7 +458,7 @@ components:
           properties:
             code:
               type: string
-              description: Machine-readable. One of not_found, invalid_query, invalid_json, unsupported_media_type, payload_too_large, validation_failed, unauthorized, internal_error.
+              description: Machine-readable. One of not_found, invalid_query, invalid_json, unsupported_media_type, payload_too_large, validation_failed, conflict, unauthorized, internal_error.
             message: { type: string }
             details: {}
     ValidationIssue:
@@ -375,6 +482,59 @@ components:
             details:
               type: array
               items: { $ref: '#/components/schemas/ValidationIssue' }
+    InspectionTask:
+      type: object
+      required: [id, shipmentId, containerIds, requestedAt, requestedBy, scope, priority, constraints]
+      properties:
+        id: { type: string }
+        shipmentId: { type: string }
+        containerIds: { type: array, items: { type: string } }
+        requestedAt: { type: string, format: date-time }
+        requestedBy: { type: string }
+        scope: { type: array, items: { type: string } }
+        scopeAr: { type: array, items: { type: string } }
+        priority: { type: string, enum: [normal, high] }
+        constraints: { type: array, items: { type: string } }
+    InspectionResultRequest:
+      type: object
+      description: Also published as docs/schemas/inspection-result-request.schema.json. Unknown fields are rejected.
+      additionalProperties: false
+      required: [performedBy, performerKind, completedAt, seal, findings, media]
+      properties:
+        performedBy: { type: string, minLength: 1, maxLength: 120, pattern: '^[A-Za-z0-9][A-Za-z0-9:._-]*$' }
+        performerKind: { type: string, enum: [robot, drone, scanner, officer] }
+        completedAt: { type: string, format: date-time, description: Not before the task was requested and not more than 24 hours after the dataset snapshot. }
+        seal:
+          type: object
+          additionalProperties: false
+          required: [id, intact]
+          properties:
+            id: { type: string, minLength: 1, maxLength: 64 }
+            intact: { type: boolean }
+        findings:
+          type: array
+          minItems: 1
+          maxItems: 50
+          items:
+            type: object
+            additionalProperties: false
+            required: [kind, severity, note]
+            properties:
+              kind: { type: string, enum: [none, seal-broken, undeclared-goods, quantity-mismatch, damage, temperature-excursion, prohibited-item] }
+              severity: { type: string, enum: [info, minor, major], description: A finding of kind none must have severity info. }
+              note: { type: string, minLength: 1, maxLength: 500 }
+              noteAr: { type: string, minLength: 1, maxLength: 500 }
+        media:
+          type: array
+          maxItems: 20
+          items:
+            type: object
+            additionalProperties: false
+            required: [ref, sha256, bytes]
+            properties:
+              ref: { type: string, minLength: 1, maxLength: 300 }
+              sha256: { type: string, pattern: '^[0-9a-f]{64}$' }
+              bytes: { type: integer, minimum: 0, maximum: 10000000000 }
     Health:
       type: object
       required: [status, apiVersion, synthetic, auth, dataset]
