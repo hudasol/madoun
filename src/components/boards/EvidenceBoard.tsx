@@ -11,6 +11,7 @@ import { useStore } from '@/lib/store';
 import { Figures } from './Figures';
 import { useLabels } from './labels';
 import { Pager } from './Pager';
+import { ProofCopy } from './ProofCopy';
 
 const T = {
   en: {
@@ -242,6 +243,7 @@ export function EvidenceBoard() {
                               <div><dt className="inline text-muted">{t('hash')}: </dt><dd className="inline"><Hash value={r.hash} /></dd></div>
                               <div><dt className="inline text-muted">{t('prev')}: </dt><dd className="inline"><Hash value={r.prevHash} /></dd></div>
                             </dl>
+                            <ProofCopy receipt={r} />
                           </div>
                           <div>
                             <h3 className="text-base">{t('reuseLog')}</h3>
