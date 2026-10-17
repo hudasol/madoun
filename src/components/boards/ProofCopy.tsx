@@ -1,45 +1,54 @@
 'use client';
 
 import { useId, useState } from 'react';
-import { LEDGER_SIGNER_ID, demoPublicKeys, demoSigner, inclusionProofFor, makeCheckpoint, type EvidenceReceipt } from '@/engine';
+import type { EvidenceReceipt } from '@/engine';
 import { useT } from '@/lib/i18n';
-import { useStore } from '@/lib/store';
 
 const T = {
   en: {
     copy: 'Copy inclusion proof',
-    copied: 'Inclusion proof copied. Save it as proof.json and run: node scripts/verify-proof.mjs proof.json {key}',
+    working: 'Fetching the proof from the ledger.',
+    copied: 'Inclusion proof copied. Save it as proof.json and run: node scripts/verify-proof.mjs proof.json <ledger public key>. Take the key from docs/key-custody.md, not from this page or the server that made the proof.',
     manual: 'The browser did not allow copying. Select the proof below and copy it.',
+    local: 'This receipt exists only in this browser\'s demo changes, so the server ledger holds no proof for it. Proofs exist for receipts in the server ledger.',
+    failed: 'The proof could not be fetched. Try again.',
     proof: 'Inclusion proof (JSON)',
-    note: 'The proof ties this receipt to a signed checkpoint of the ledger as viewed now. It is checked offline with the ledger public key. Demo key: it proves the mechanism, not identity. A proof covers the receipt content, not its current status.',
+    note: 'The proof ties this receipt to the latest signed checkpoint of the server ledger and is checked offline. It proves the hashed fields (identity, type, subject, issuer, verifier, method, scope, validity, sharing), not the summary text or the current status. Demo key: it proves the mechanism, not identity.',
   },
   ar: {
     copy: 'نسخ إثبات التضمين',
-    copied: 'تم نسخ إثبات التضمين. احفظه باسم proof.json ثم شغّل: node scripts/verify-proof.mjs proof.json {key}',
+    working: 'جارٍ جلب الإثبات من السجل.',
+    copied: 'تم نسخ إثبات التضمين. احفظه باسم proof.json ثم شغّل: node scripts/verify-proof.mjs proof.json <المفتاح العام للسجل>. خذ المفتاح من docs/key-custody.md، لا من هذه الصفحة ولا من الخادم الذي أصدر الإثبات.',
     manual: 'لم يسمح المتصفح بالنسخ. حدّد الإثبات أدناه وانسخه.',
+    local: 'هذا الإيصال موجود فقط في التغييرات التجريبية لهذا المتصفح، لذلك لا يحتفظ سجل الخادم بإثبات له. تتوفر الإثباتات للإيصالات الموجودة في سجل الخادم.',
+    failed: 'تعذّر جلب الإثبات. أعد المحاولة.',
     proof: 'إثبات التضمين (JSON)',
-    note: 'يربط الإثبات هذا الإيصال بنقطة تحقق موقّعة من السجل كما يُعرض الآن، ويُتحقق منه دون اتصال باستخدام المفتاح العام للسجل. المفتاح تجريبي: يثبت الآلية لا الهوية. ويغطي الإثبات محتوى الإيصال لا حالته الحالية.',
+    note: 'يربط الإثبات هذا الإيصال بأحدث نقطة تحقق موقّعة من سجل الخادم، ويُتحقق منه دون اتصال. ويثبت الحقول المشمولة بالبصمة (المعرّف والنوع والموضوع والمُصدر والجهة المتحققة والطريقة والنطاق والصلاحية والمشاركة)، لا نص الملخص ولا الحالة الحالية. المفتاح تجريبي: يثبت الآلية لا الهوية.',
   },
 };
 
-/** Builds a signed checkpoint of the ledger at the viewed moment and an inclusion proof for one receipt. */
+/** Fetches the server's inclusion proof for one receipt (signed with the ledger key the server is configured with) and copies it. */
 export function ProofCopy({ receipt }: { receipt: EvidenceReceipt }) {
   const t = useT(T);
-  const s = useStore();
   const uid = useId();
   const [msg, setMsg] = useState('');
   const [fallback, setFallback] = useState('');
-  const key = demoPublicKeys([LEDGER_SIGNER_ID])[LEDGER_SIGNER_ID];
 
   const copy = async () => {
-    const ledger = s.world?.receipts ?? [];
-    const proof = inclusionProofFor(ledger, receipt.id, makeCheckpoint(ledger, s.at, demoSigner(LEDGER_SIGNER_ID)));
-    if (!proof) return;
-    const text = JSON.stringify(proof, null, 2);
+    setFallback('');
+    setMsg(t('working'));
+    let text: string;
+    try {
+      const res = await fetch(`/api/v1/receipts/${encodeURIComponent(receipt.id)}/proof`);
+      if (res.status === 404) return setMsg(t('local'));
+      if (!res.ok) return setMsg(t('failed'));
+      text = JSON.stringify(await res.json(), null, 2);
+    } catch {
+      return setMsg(t('failed'));
+    }
     try {
       await navigator.clipboard.writeText(text);
-      setFallback('');
-      setMsg(t('copied', { key }));
+      setMsg(t('copied'));
     } catch {
       setFallback(text);
       setMsg(t('manual'));
@@ -49,7 +58,7 @@ export function ProofCopy({ receipt }: { receipt: EvidenceReceipt }) {
   return (
     <div className="mt-4">
       <button type="button" className="btn" onClick={copy}>{t('copy')}</button>
-      <p role="status" aria-live="polite" className={msg ? 'mt-2 break-all text-sm' : 'sr-only'}>{msg}</p>
+      <p role="status" aria-live="polite" className={msg ? 'mt-2 break-words text-sm' : 'sr-only'}>{msg}</p>
       {fallback && (
         <label className="mt-2 flex flex-col gap-1 text-sm text-muted" htmlFor={`${uid}p`}>
           {t('proof')}

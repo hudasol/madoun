@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { LEDGER_SIGNER_ID, makeCheckpoint, verifyCheckpointSignature } from '@/engine';
+import { LEDGER_SIGNER_ID, demoPublicKeys, makeCheckpoint, verifyCheckpointSignature } from '@/engine';
 import { KeystoreError, fileSigner } from '@/server/keystore';
 import { getWorld } from '@/server/world';
 
@@ -24,6 +24,10 @@ describe('file based development keystore', () => {
     expect(() => fileSigner(write('short.key', 'ab'.repeat(16)), 'x')).toThrow(KeystoreError);
     expect(() => fileSigner(write('upper.key', 'AB'.repeat(32)), 'x')).toThrow(KeystoreError);
     expect(() => fileSigner(write('junk.key', 'not a key'), 'x')).toThrow(KeystoreError);
+  });
+
+  it('docs/key-custody.md publishes the demo ledger key the server actually uses', () => {
+    expect(fs.readFileSync('docs/key-custody.md', 'utf8')).toContain(demoPublicKeys([LEDGER_SIGNER_ID])[LEDGER_SIGNER_ID]);
   });
 
   it('the key folder is ignored by git', () => {

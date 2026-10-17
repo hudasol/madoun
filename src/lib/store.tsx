@@ -249,7 +249,10 @@ export function MadounProvider({ children }: { children: ReactNode }) {
       const f = world?.shipments[shipmentId];
       const p = plan(shipmentId);
       if (!f?.inspectionResult || !p) return false;
-      const evs: MadounEvent[] = [{ type: 'InspectionConfirmed', at, shipmentId, officerId: actor, decision, note }];
+      const confirmation: MadounEvent = { type: 'InspectionConfirmed', at, shipmentId, officerId: actor, decision, note };
+      // Report failure honestly: the confirmation itself must be accepted, not merely some event of the batch.
+      if (!world || validateEvent(world, confirmation).length > 0) return false;
+      const evs: MadounEvent[] = [confirmation];
       if (!f.outcome) evs.push({ type: 'OutcomeRecorded', at, outcome: outcomeFromInspection(f.shipment, f.assessment ?? p.assessment, f.inspectionResult, [], at, 'risk', decision) });
       return push(evs) > 0;
     },
