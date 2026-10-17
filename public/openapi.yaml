@@ -12,6 +12,10 @@ info:
     allows every request. The intended design (mTLS between systems plus per-client API keys) is
     described in `docs/integration.md` and is not part of this contract yet.
 
+    Rate limits: an in-memory token bucket per server instance and client (reads: burst 600, 100 per
+    second; writes: burst 120, 20 per second). Over the limit the API answers 429 `rate_limited` with
+    `Retry-After`. Per instance only: not shared between instances and reset on restart.
+
     Pagination: list endpoints take `page` (from 1) and `pageSize` (1 to 100, default 25) and return
     `{data, page}`. Order is a fixed total order, so paging never skips or repeats rows.
     Errors always use `{error:{code,message,details?}}`.
@@ -234,7 +238,7 @@ paths:
                   checkpoint: { $ref: '#/components/schemas/Checkpoint' }
                   publicKey: { type: string, pattern: '^[0-9a-f]{64}$' }
                   algorithm: { type: string, const: Ed25519 }
-                  demoKey: { type: boolean, const: true }
+                  demoKey: { type: boolean, description: True when the public demo key signs (the default). False when the server runs with the file based development keystore. }
                   consistency: { $ref: '#/components/schemas/ConsistencyProof' }
         '400': { $ref: '#/components/responses/BadQuery' }
   /exceptions:
@@ -511,7 +515,7 @@ components:
           properties:
             code:
               type: string
-              description: Machine-readable. One of not_found, invalid_query, invalid_json, unsupported_media_type, payload_too_large, validation_failed, conflict, unauthorized, internal_error.
+              description: Machine-readable. One of not_found, invalid_query, invalid_json, unsupported_media_type, payload_too_large, validation_failed, conflict, rate_limited, unauthorized, internal_error.
             message: { type: string }
             details: {}
     ValidationIssue:
