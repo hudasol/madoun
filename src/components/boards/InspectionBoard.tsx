@@ -7,6 +7,7 @@ import { LaneBadge } from '@/components/LaneBadge';
 import { Loading, PageTitle, Panel } from '@/components/Panel';
 import { useBi, useFormat, useT } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
+import { CellComparison } from './CellComparison';
 import { Modelled } from './Figures';
 import { useLabels } from './labels';
 
@@ -191,6 +192,8 @@ export function InspectionBoard() {
           </table></div>
         </section>
       )}
+
+      <CellComparison />
 
       <section className="mt-10" aria-labelledby="contract">
         <h2 id="contract" className="text-[1.1rem]">{t('contract')}</h2>
