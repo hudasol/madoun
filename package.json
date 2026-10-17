@@ -16,7 +16,8 @@
     "bench": "tsx scripts/bench.ts",
     "worldhash": "tsx scripts/worldhash.ts",
     "eval": "tsx scripts/eval.ts",
-    "cell": "tsx scripts/cell.ts"
+    "cell": "tsx scripts/cell.ts",
+    "offline": "node scripts/offline-check.mjs 3300"
   },
   "dependencies": {
     "@fontsource-variable/space-grotesk": "^5.3.0",
