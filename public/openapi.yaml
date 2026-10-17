@@ -401,8 +401,9 @@ paths:
         digests. **Safe human machine teaming:** when a robot, drone or scanner reports a finding of
         severity `major` or a broken seal, the receipt is created as `pending` and
         `awaitingOfficerConfirmation` is `true`. Only a customs officer can then uphold it (the receipt
-        becomes `verified`) or overturn it (the receipt is revoked with the officer's note). This
-        endpoint never records a learning outcome. **Mock:** stored in memory only and lost on restart.
+        becomes `verified`) or overturn it (the receipt is revoked with the officer's note), in the officer
+        interface; this mock API deliberately has no confirmation route. Only robot, drone and scanner
+        results are accepted. This endpoint never records a learning outcome. **Mock:** stored in memory only and lost on restart.
       parameters:
         - name: id
           in: path

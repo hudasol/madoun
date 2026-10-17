@@ -18,7 +18,8 @@ A machine never has the last word on a serious finding. `requiresOfficerConfirma
 | Result arrives | The receipt is created as `pending`. No authority can rely on it. | `resultToReceiptDraft` |
 | Before a decision | A learning outcome is rejected; issuing the receipt as `verified` is rejected. | `validateEvent` |
 | Officer upholds | `InspectionConfirmed { decision: 'upheld', officerId, note }` makes the receipt `verified`. | reducer (`apply` and `WorldBuilder`) |
-| Officer overturns | The receipt is revoked with the officer's note as the reason; the outcome is recorded as a false alarm. | reducer, `outcomeFromInspection` |
+| Officer overturns | The receipt is revoked with the officer's note as the reason, whatever its status; the outcome is recorded as a false alarm. | reducer, `outcomeFromInspection` |
+| Any other order | A receipt issued before the result, under another id, or with a status the rule does not give it, a second result, or an outcome before the result: all rejected. These paths were found by an independent review and are now in the property test. | `validateEvent` |
 
 The officer id and a note are required, a second confirmation is rejected, and a confirmation cannot predate the result. A property test (`tests/confirmation.test.ts`) checks over random event sequences, including forged verified receipts and blank notes, that no serious machine finding is ever verified without an upheld confirmation. In the user interface only the customs role sees the uphold or overturn form (Inspection page and the shipment file). In the simulator the duty officer confirms one hour after the result, inside the red lane release window; that delay is an assumption (docs/decisions.md, D3).
 
@@ -28,7 +29,7 @@ The officer id and a note are required, a second confirmation is rejected, and a
 | `GET /api/v1/inspection-tasks?status=open` | Tasks for red lane shipments in flight that have no result yet. `status=completed` lists tasks with a result. Paged like every list route. |
 | `POST /api/v1/inspection-tasks/{id}/result` | The gateway posts a result. Strict validation: unknown fields rejected at every level, 65536 byte body cap checked in bytes, at most 50 findings and 20 media digests, `completedAt` not before the request. Returns 201 with the receipt and `awaitingOfficerConfirmation`; 409 if the task already has a result. |
 
-Both routes are a **mock**: accepted results are held in memory in one server process, are lost on restart and are not shared between instances. The route never records a learning outcome; that stays a customs action after confirmation. The contract is in `public/openapi.yaml` and as JSON Schemas in `docs/schemas/inspection-task.schema.json` and `docs/schemas/inspection-result-request.schema.json`.
+There is deliberately no confirmation route in the mock API: an officer decision must not be callable by a device on an unauthenticated API, so it is made in the officer interface. The result route accepts machine performers only. Both routes are a **mock**: accepted results are held in memory in one server process, are lost on restart and are not shared between instances. The route never records a learning outcome; that stays a customs action after confirmation. The contract is in `public/openapi.yaml` and as JSON Schemas in `docs/schemas/inspection-task.schema.json` and `docs/schemas/inspection-result-request.schema.json`.
 
 ## Reference gateway
 `gateway/robot.ts` plays a robotic inspection cell. It polls open tasks, simulates the cell with seeded randomness, and posts a result with the SHA-256 digest of each media file it "captured" (generated placeholder bytes, not images). It imports only Node built-ins, nothing from the app, so it shows exactly what an external adapter needs to know.
@@ -58,7 +59,7 @@ Message definitions are in `gateway/ros2/msg/` (package name suggested: `madoun_
 | `media[]` | `InspectionResult.media[]` (`MediaDigest`) | `ref`, `sha256`, `bytes` |
 
 ### rosbridge style JSON
-A bridge node can expose the same messages over the rosbridge v2 JSON protocol. The gateway would subscribe to results and publish tasks, for example:
+A bridge node can expose the same messages over the rosbridge v2 JSON protocol: the gateway publishes tasks on `/madoun/inspection/tasks` and subscribes to results on `/madoun/inspection/results`, where the robot side publishes them. For example, the subscription and one published result (the digest is an illustrative placeholder, not the hash of real bytes):
 
 ```json
 { "op": "subscribe", "topic": "/madoun/inspection/results", "type": "madoun_inspection_msgs/msg/InspectionResult" }
