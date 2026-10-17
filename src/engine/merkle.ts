@@ -100,7 +100,7 @@ export function verifyInclusion(leaf: Hash, index: number, size: number, path: H
 export function verifyConsistency(size1: number, size2: number, root1: Hash, root2: Hash, proof: Hash[]): boolean {
   if (!Number.isInteger(size1) || !Number.isInteger(size2) || size1 < 0 || size2 < size1) return false;
   if (size1 === size2) return proof.length === 0 && equal(root1, root2);
-  if (size1 === 0) return proof.length === 0; // the empty tree is a prefix of every tree
+  if (size1 === 0) return proof.length === 0 && equal(root1, EMPTY_ROOT); // the empty tree is a prefix of every tree
   if (proof.length === 0) return false;
   const path = (size1 & (size1 - 1)) === 0 ? [root1, ...proof] : [...proof];
   let fn = size1 - 1;
