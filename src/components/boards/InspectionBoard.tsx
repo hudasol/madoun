@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { createInspectionTask, type InspectionResult, type InspectionTask } from '@/engine';
+import { awaitingOfficerConfirmation, createInspectionTask, requiresOfficerConfirmation, type InspectionResult, type InspectionTask, type ShipmentFile } from '@/engine';
 import { LaneBadge } from '@/components/LaneBadge';
 import { Loading, PageTitle, Panel } from '@/components/Panel';
 import { useBi, useFormat, useT } from '@/lib/i18n';
@@ -25,6 +25,9 @@ const T = {
     today: 'Today the performer is a simulator. A ROS 2 bridge adapter would replace it: it would take the task, drive a robot or drone, and return the same result. Nothing else in Madoun would change.',
     params: 'Detection rates in the simulator are parameters we set, not claims about any real device. No real robot, drone or scanner is connected.',
     sample: 'Synthetic data throughout.',
+    awaitBanner: 'Awaiting officer confirmation: {n}. A serious finding from a robot, drone or scanner stays pending, and is kept out of the learning loop, until a customs officer upholds or overturns it on the shipment file.',
+    awaitList: 'Shipments awaiting officer confirmation',
+    confirmCol: 'Officer confirmation', c_awaiting: 'Awaiting', c_upheld: 'Upheld', c_overturned: 'Overturned', c_none: 'Not needed',
   },
   ar: {
     title: 'الفحص',
@@ -40,6 +43,9 @@ const T = {
     today: 'المنفّذ اليوم محاكاة. وسيحل محلها محوّل جسر ROS 2: يستلم المهمة ويشغّل روبوتاً أو طائرة مسيّرة ويعيد النتيجة نفسها. ولا يتغير أي شيء آخر في مدوّن.',
     params: 'معدلات الكشف في المحاكاة معطيات نحن من حدّدها، وليست ادعاءً عن أي جهاز حقيقي. لا يوجد روبوت أو طائرة أو ماسح حقيقي متصل.',
     sample: 'بيانات اصطناعية بالكامل.',
+    awaitBanner: 'بانتظار تأكيد الضابط: {n}. تبقى الملاحظة الجسيمة الصادرة عن روبوت أو طائرة مسيّرة أو ماسح معلّقة، وخارج حلقة التعلّم، إلى أن يؤكدها ضابط الجمارك أو ينقضها في ملف الشحنة.',
+    awaitList: 'الشحنات بانتظار تأكيد الضابط',
+    confirmCol: 'تأكيد الضابط', c_awaiting: 'بالانتظار', c_upheld: 'مؤكدة', c_overturned: 'منقوضة', c_none: 'غير مطلوب',
   },
 };
 
@@ -59,6 +65,10 @@ export function InspectionBoard() {
     () => Object.values(s.world?.shipments ?? {}).filter((x) => x.inspectionResult).sort((a, b) => Date.parse(b.inspectionResult!.completedAt) - Date.parse(a.inspectionResult!.completedAt)),
     [s.world],
   );
+
+  const awaiting = useMemo(() => done.filter((x) => awaitingOfficerConfirmation(x)), [done]);
+  const confirmState = (x: ShipmentFile) =>
+    x.inspectionConfirmation ? x.inspectionConfirmation.decision : requiresOfficerConfirmation(x.inspectionResult!) ? 'awaiting' : 'none';
 
   const summary = useMemo(() => {
     const m = new Map<string, { n: number; fnd: number; broken: number }>();
@@ -90,6 +100,14 @@ export function InspectionBoard() {
     <div>
       <PageTitle title={t('title')} intro={t('intro')} />
       <p role="status" aria-live="polite" className={message ? 'mb-4 rounded-[3px] border border-line bg-panel2 px-3 py-2 text-sm' : 'sr-only'}>{message}</p>
+      {awaiting.length > 0 && (
+        <div className="mb-6 rounded-[3px] border-2 border-ink p-3" role="region" aria-label={t('awaitList')} data-confirm-banner>
+          <p className="max-w-[80ch] font-medium">{t('awaitBanner', { n: f.number(awaiting.length) })}</p>
+          <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+            {awaiting.map((x) => <li key={x.shipment.id}><Link href={`/shipments/${x.shipment.id}`} className="mono underline underline-offset-2">{x.shipment.id}</Link></li>)}
+          </ul>
+        </div>
+      )}
 
       <section aria-labelledby="wait">
         <h2 id="wait" className="mb-1 text-[1.1rem]">{t('waiting')}</h2>
@@ -135,7 +153,7 @@ export function InspectionBoard() {
           <div className="panel relative overflow-x-auto">
             <table className="table-clean min-w-[820px]">
               <caption className="sr-only">{t('completedCaption')}</caption>
-              <thead><tr><th scope="col">{t('shipment')}</th><th scope="col">{t('performer')}</th><th scope="col">{t('seal')}</th><th scope="col">{t('findings')}</th><th scope="col">{t('time')}</th><th scope="col">{t('receipt')}</th></tr></thead>
+              <thead><tr><th scope="col">{t('shipment')}</th><th scope="col">{t('performer')}</th><th scope="col">{t('seal')}</th><th scope="col">{t('findings')}</th><th scope="col">{t('time')}</th><th scope="col">{t('confirmCol')}</th><th scope="col">{t('receipt')}</th></tr></thead>
               <tbody>
                 {done.map((d) => {
                   const r = d.inspectionResult!;
@@ -148,6 +166,7 @@ export function InspectionBoard() {
                         <ul>{r.findings.map((x, i) => <li key={i}>{L.finding(x.kind)}{x.kind !== 'none' && <span className="text-muted"> ({L.severity(x.severity)})</span>}</li>)}</ul>
                       </td>
                       <td className="whitespace-nowrap">{f.dateTime(r.completedAt)}</td>
+                      <td className={confirmState(d) === 'awaiting' ? 'font-semibold' : ''}>{t(`c_${confirmState(d)}`)}</td>
                       <td>{receiptExists(r.taskId) ? <Link href={`/evidence?receipt=rcpt-${r.taskId}`} className="whitespace-nowrap underline underline-offset-2">{t('openReceipt')}</Link> : <span className="text-muted">–</span>}</td>
                     </tr>
                   );
