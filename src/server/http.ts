@@ -1,4 +1,5 @@
 import { authorize } from './auth';
+import { clientKey, limiters, rateLimitNow } from './rate-limit';
 
 export const API_VERSION = '1.0.0-mock';
 
@@ -13,8 +14,8 @@ const BASE_HEADERS: Record<string, string> = {
   'X-Madoun-Api-Version': API_VERSION,
 };
 
-export function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), { status, headers: BASE_HEADERS });
+export function json(body: unknown, status = 200, extraHeaders: Record<string, string> = {}): Response {
+  return new Response(JSON.stringify(body), { status, headers: { ...BASE_HEADERS, ...extraHeaders } });
 }
 
 export function errorResponse(status: number, code: string, message: string, details?: unknown): Response {
@@ -24,11 +25,20 @@ export function errorResponse(status: number, code: string, message: string, det
 
 export const notFound = (what: string, id: string) => errorResponse(404, 'not_found', `${what} '${id}' was not found.`);
 
-/** Runs a handler behind the auth seam and a catch-all that keeps the error shape consistent. */
+/**
+ * Runs a handler behind the auth seam and the per instance rate limiter (src/server/rate-limit.ts),
+ * with a catch-all that keeps the error shape consistent.
+ */
 export async function handle(request: Request, fn: () => Response | Promise<Response>): Promise<Response> {
   try {
     const decision = authorize(request);
     if (!decision.allowed) return errorResponse(401, 'unauthorized', 'Authentication required.');
+    const kind = request.method === 'GET' || request.method === 'HEAD' ? 'read' : 'write';
+    const rate = limiters()[kind].take(clientKey(request, decision.clientId), rateLimitNow());
+    if (!rate.allowed) {
+      const body: ApiErrorBody = { error: { code: 'rate_limited', message: `Too many requests. Retry after ${rate.retryAfterSeconds} second(s).` } };
+      return json(body, 429, { 'Retry-After': String(rate.retryAfterSeconds) });
+    }
     return await fn();
   } catch (e) {
     console.error('[madoun-api]', e);
