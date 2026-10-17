@@ -2,8 +2,7 @@
 // 1. Every page and API response carries the security headers.
 // 2. Loading every page makes requests to the app's own origin only (nothing leaves the machine).
 // 3. No Content-Security-Policy violation or console error appears while using the pages.
-import { chromium } from 'playwright-core';
-import fs from 'node:fs';
+import { launchChromium } from './browser.mjs';
 
 const base = new URL(process.argv[2] ?? 'http://localhost:3000');
 const need = ['content-security-policy', 'x-content-type-options', 'x-frame-options', 'referrer-policy', 'permissions-policy', 'cross-origin-opener-policy'];
@@ -18,9 +17,7 @@ for (const p of [...pages, ...apis]) {
   if (res.headers.get('x-powered-by')) fail(`${p} leaks x-powered-by`);
 }
 
-const candidates = [process.env.PW_CHROMIUM, '/opt/pw-browsers/chromium', ...fs.readdirSync('/opt/pw-browsers').filter((d) => d.startsWith('chromium')).map((d) => `/opt/pw-browsers/${d}/chrome-linux/chrome`)].filter(Boolean);
-const executablePath = candidates.find((p) => { try { return fs.statSync(p).isFile(); } catch { return false; } });
-const browser = await chromium.launch({ executablePath, args: ['--no-sandbox'] });
+const browser = await launchChromium();
 const page = await (await browser.newContext()).newPage();
 const foreign = new Set();
 const errors = [];
