@@ -149,7 +149,7 @@ export interface CellRun {
   /** True when every task completed exactly once. */
   conserved: boolean;
   violations: number;
-  /** Hours from the first arrival until the last task completed. */
+  /** Hours from the start of the run (t = 0) until the last task completed. */
   drainedAt: number;
   medianLead: number;
   p90Lead: number;
@@ -167,7 +167,10 @@ export interface CellRun {
 /** Runs one scenario for one seed. Pure and deterministic. */
 export function simulateCell(scenario: { id: CellScenarioId; params: CellParams }, seed: number): CellRun {
   const p = scenario.params;
+  // Separate streams for service times, detection and faults, as preregistered (amendment A1).
   const rng = makeRng((seed * 7919 + 2) >>> 0);
+  const detectRng = makeRng((seed * 7919 + 3) >>> 0);
+  const faultRng = makeRng((seed * 7919 + 4) >>> 0);
   const tasks: Task[] = cellArrivals(seed, p).map((a, id) => ({
     id, arrival: a.arrival, violation: a.violation, handsOn: 0, officerHours: 0, attempts: 0, flagged: false,
     seriousMachine: false, established: false, completions: 0,
@@ -211,8 +214,8 @@ export function simulateCell(scenario: { id: CellScenarioId; params: CellParams 
       task.attempts++;
       r.state = 'busy';
       const dur = p.robot.fixedHours + expDraw(rng, p.robot.expMeanHours);
-      if (rng.chance(p.robot.faultProb)) {
-        const spent = rng.next() * dur; // the fault strikes at a uniformly random point of the job
+      if (faultRng.chance(p.robot.faultProb)) {
+        const spent = faultRng.next() * dur; // the fault strikes at a uniformly random point of the job
         agenda.push({ t: t + spent, kind: 'robot-fault', robot: i, task, dur: spent });
       }
       else agenda.push({ t: t + dur, kind: 'robot-end', robot: i, task, dur });
@@ -233,7 +236,7 @@ export function simulateCell(scenario: { id: CellScenarioId; params: CellParams 
       task.attempts++;
       o.busy = true;
       const dur = p.officer.fixedHours + expDraw(rng, p.officer.expMeanHours);
-      const detected = task.violation ? rng.chance(p.officer.sensitivity) : rng.chance(p.officer.falsePositive);
+      const detected = task.violation ? detectRng.chance(p.officer.sensitivity) : detectRng.chance(p.officer.falsePositive);
       task.handsOn += dur;
       task.officerHours += dur;
       agenda.push({ t: t + dur, kind: 'officer-end', officer: i, job: 'inspect', task, detected });
@@ -264,7 +267,7 @@ export function simulateCell(scenario: { id: CellScenarioId; params: CellParams 
         break;
       case 'scan-end':
         scannerBusy = false;
-        ev.task.flagged = ev.task.violation ? rng.chance(p.scanner.sensitivity) : rng.chance(p.scanner.falsePositive);
+        ev.task.flagged = ev.task.violation ? detectRng.chance(p.scanner.sensitivity) : detectRng.chance(p.scanner.falsePositive);
         officerQ.push({ kind: 'review', task: ev.task });
         break;
       case 'officer-end':
@@ -282,7 +285,7 @@ export function simulateCell(scenario: { id: CellScenarioId; params: CellParams 
         const r = robots[ev.robot];
         r.work += ev.dur;
         ev.task.handsOn += ev.dur;
-        const major = ev.task.violation ? rng.chance(p.robot.sensitivity) : rng.chance(p.robot.falsePositive);
+        const major = ev.task.violation ? detectRng.chance(p.robot.sensitivity) : detectRng.chance(p.robot.falsePositive);
         const result = { performerKind: 'robot' as const, seal: { id: '', intact: true }, findings: major ? [{ kind: 'undeclared-goods' as const, severity: 'major' as const, note: '' }] : [{ kind: 'none' as const, severity: 'info' as const, note: '' }] };
         if (requiresOfficerConfirmation(result)) {
           ev.task.seriousMachine = true;
@@ -343,8 +346,9 @@ export function simulateCell(scenario: { id: CellScenarioId; params: CellParams 
 
 export interface Interval { mean: number; lo: number; hi: number; sd: number; n: number }
 
-/** Two sided 95 percent t quantiles for small samples; 1.96 beyond the table. */
-const T975: Record<number, number> = { 9: 2.262, 19: 2.093, 29: 2.045, 39: 2.023, 49: 2.01 };
+const T975 = [NaN, 12.706, 4.303, 3.182, 2.776, 2.571, 2.447, 2.365, 2.306, 2.262, 2.228, 2.201, 2.179, 2.16, 2.145, 2.131, 2.12, 2.11, 2.101, 2.093, 2.086, 2.08, 2.074, 2.069, 2.064, 2.06, 2.056, 2.052, 2.048, 2.045, 2.042];
+/** Two sided 95 percent t quantile for df degrees of freedom: exact table to 30, then 1.96 + 2.4/df (within 0.005 of the true value). */
+export const t975 = (df: number) => (df <= 30 ? T975[df] : 1.96 + 2.4 / df);
 
 /** Mean over seeds with a 95 percent t interval. NaN values (a metric that does not apply) are dropped. */
 export function meanInterval(values: number[]): Interval {
@@ -353,7 +357,7 @@ export function meanInterval(values: number[]): Interval {
   const m = mean(v);
   if (n < 2) return { mean: m, lo: m, hi: m, sd: 0, n };
   const sd = Math.sqrt(v.reduce((a, x) => a + (x - m) ** 2, 0) / (n - 1));
-  const half = (T975[n - 1] ?? 1.96) * (sd / Math.sqrt(n));
+  const half = t975(n - 1) * (sd / Math.sqrt(n));
   return { mean: m, lo: m - half, hi: m + half, sd, n };
 }
 
@@ -383,7 +387,11 @@ export function runCellExperiment(seeds: number[]): CellExperiment {
   return { seeds, runs, summary, diff };
 }
 
-export interface PredictionCheck { id: string; prediction: string; condition: string; observed: string; hit: boolean }
+/**
+ * 'prediction' can fail; 'invariant' is a structural check that cannot fail by construction (a task with a
+ * serious machine finding only completes at confirmation) and is reported separately (amendment A2).
+ */
+export interface PredictionCheck { id: string; kind: 'prediction' | 'invariant'; prediction: string; condition: string; observed: string; hit: boolean }
 
 const h = (x: number) => `${x.toFixed(2)} h`;
 const pc = (x: number) => `${(x * 100).toFixed(1)}%`;
@@ -401,7 +409,7 @@ export function checkCellPredictions(x: CellExperiment): PredictionCheck[] {
   const allConfirmed = x.runs.filter((r) => r.scenario === 'S3' || r.scenario === 'S4').every((r) => r.confirmedBeforeCompletion === 1);
   const minConfirmed = Math.min(...x.runs.filter((r) => r.scenario === 'S3' || r.scenario === 'S4').map((r) => r.confirmedBeforeCompletion));
   const missed = (id: CellScenarioId) => S[id].missedViolationShare.mean;
-  return [
+  const checks: Omit<PredictionCheck, 'kind'>[] = [
     { id: 'P1', prediction: 'A robot cell with officer confirmation shortens median lead time.', condition: 'Upper bound of M1(S3) minus M1(S1) below 0', observed: iv(d1, h), hit: d1.hi < 0 },
     { id: 'P2a', prediction: 'Officers only, median lead time.', condition: 'Mean M1(S1) between 1.3 h and 2.5 h', observed: iv(S.S1.medianLead, h), hit: S.S1.medianLead.mean >= 1.3 && S.S1.medianLead.mean <= 2.5 },
     { id: 'P2b', prediction: 'Robot cell, median lead time.', condition: 'Mean M1(S3) between 0.6 h and 1.4 h', observed: iv(S.S3.medianLead, h), hit: S.S3.medianLead.mean >= 0.6 && S.S3.medianLead.mean <= 1.4 },
@@ -417,6 +425,7 @@ export function checkCellPredictions(x: CellExperiment): PredictionCheck[] {
     { id: 'P9', prediction: 'The one hour confirmation delay assumed in the release simulator is not optimistic.', condition: 'Mean M6(S3) at most 1.0 h', observed: iv(S.S3.p90ConfirmDelay, h), hit: S.S3.p90ConfirmDelay.mean <= 1.0 },
     { id: 'P10', prediction: 'The robot cell frees officer time.', condition: 'Upper bound of M4(S3) below 0.25 h per container', observed: iv(S.S3.officerHoursPerContainer, h), hit: S.S3.officerHoursPerContainer.hi < 0.25 },
   ];
+  return checks.map((c) => ({ ...c, kind: c.id === 'P6' ? 'invariant' : 'prediction' }));
 }
 
 export const CELL_SEEDS = Array.from({ length: 30 }, (_, i) => i + 1);

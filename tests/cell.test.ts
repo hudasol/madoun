@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { CELL_BASE, CELL_SCENARIOS, CELL_SEEDS, cellArrivals, meanInterval, simulateCell, type CellParams } from '@/engine';
+import {
+  CELL_BASE, CELL_SCENARIOS, CELL_SEEDS, cellArrivals, checkCellPredictions, meanInterval, runCellExperiment, simulateCell, t975, type CellParams,
+} from '@/engine';
 import { buildCellReport } from '../scripts/cell';
 
 const scenario = (id: string) => CELL_SCENARIOS.find((s) => s.id === id)!;
@@ -51,6 +53,34 @@ describe('inspection cell digital twin', () => {
     const r = simulateCell(scenario('S1'), 4);
     expect(r.officerHoursPerContainer).toBeGreaterThan(1);
     expect(r.robotFaults).toBe(0);
+  });
+
+  it('shifts, battery and staffing move lead time in the expected direction', () => {
+    const lead = (params: CellParams) => meanInterval(CELL_SEEDS.slice(0, 10).map((seed) => simulateCell({ id: 'S3', params }, seed).medianLead)).mean;
+    const base: CellParams = { ...CELL_BASE, mode: 'robots' };
+    expect(lead({ ...base, robot: { ...base.robot, batteryHours: 1, chargeHours: 3 } })).toBeGreaterThan(lead(base));
+    const officers = (n: number) => meanInterval(CELL_SEEDS.slice(0, 10).map((seed) => simulateCell({ id: 'S1', params: { ...CELL_BASE, mode: 'officers', officersNight: n } }, seed).p90Lead)).mean;
+    expect(officers(2)).toBeGreaterThan(officers(3));
+  });
+
+  it('every robot fault puts its task back at the front, and officers step in only when no robot can work', () => {
+    const allDown: CellParams = { ...CELL_BASE, mode: 'robots', robot: { ...CELL_BASE.robot, faultProb: 0.9, recoveryHours: 12 } };
+    const r = simulateCell({ id: 'S4', params: allDown }, 2);
+    expect(r.conserved).toBe(true);
+    expect(r.officerHoursPerContainer).toBeGreaterThan(simulateCell(scenario('S3'), 2).officerHoursPerContainer);
+  });
+
+  it('counts P6 as a structural check, not a prediction', () => {
+    const checks = checkCellPredictions(runCellExperiment([1, 2, 3]));
+    expect(checks.find((c) => c.id === 'P6')?.kind).toBe('invariant');
+    expect(checks.filter((c) => c.kind === 'prediction')).toHaveLength(13);
+  });
+
+  it('uses the t table to 30 degrees of freedom and a close approximation beyond', () => {
+    expect(t975(29)).toBe(2.045);
+    expect(t975(4)).toBe(2.776);
+    expect(Math.abs(t975(40) - 2.021)).toBeLessThan(0.005);
+    expect(Math.abs(t975(120) - 1.98)).toBeLessThan(0.005);
   });
 
   it('computes a t interval that contains the mean and narrows with more seeds', () => {
