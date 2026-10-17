@@ -14,7 +14,7 @@ import { useLabels } from './labels';
 const T = {
   en: {
     title: 'Inspection',
-    intro: 'When a shipment lands in the red lane, Madoun issues an inspection task. Any performer can carry it out: an officer, a scanner, a drone or a ground robot. The result becomes a shareable evidence receipt and an outcome that feeds learning.',
+    intro: 'When a shipment lands in the red lane, Madoun issues an inspection task. Any performer can carry it out: an officer, a scanner, a drone or a ground robot. The result becomes a shareable evidence receipt and an outcome that feeds learning. A serious finding from a machine counts only after a customs officer upholds it.',
     waiting: 'Waiting for inspection', waitingNone: 'No shipment is waiting for an inspection at this moment.',
     waitingCaption: 'Shipments waiting for inspection', shipment: 'Shipment', lane: 'Lane', scope: 'What to check', constraints: 'Constraints', priority: 'Priority', high: 'High', normal: 'Normal', noScope: 'Full physical inspection', noCons: 'None', containers: 'Containers',
     roleNo: 'Your role cannot request an inspection', run: 'Run inspection cell', ran: 'Inspection cell finished for {id}. The result is now under Completed.', cellNote: 'The cell is a simulator. It stands in for a real performer.',
@@ -32,7 +32,7 @@ const T = {
   },
   ar: {
     title: 'الفحص',
-    intro: 'عندما تقع شحنة في المسار الأحمر يصدر مدوّن مهمة فحص. ويمكن لأي منفّذ إجراؤها: ضابط أو ماسح أو طائرة مسيّرة أو روبوت أرضي. وتتحول النتيجة إلى إيصال دليل قابل للمشاركة ونتيجة تغذي التعلّم.',
+    intro: 'عندما تقع شحنة في المسار الأحمر يصدر مدوّن مهمة فحص. ويمكن لأي منفّذ إجراؤها: ضابط أو ماسح أو طائرة مسيّرة أو روبوت أرضي. وتتحول النتيجة إلى إيصال دليل قابل للمشاركة ونتيجة تغذي التعلّم. ولا تُعتمد الملاحظة الجسيمة الصادرة عن جهاز آلي إلا بعد أن يؤكدها ضابط الجمارك.',
     waiting: 'بانتظار الفحص', waitingNone: 'لا توجد شحنة بانتظار الفحص في هذه اللحظة.',
     waitingCaption: 'الشحنات بانتظار الفحص', shipment: 'الشحنة', lane: 'المسار', scope: 'ما المطلوب فحصه', constraints: 'القيود', priority: 'الأولوية', high: 'عالية', normal: 'عادية', noScope: 'فحص مادي كامل', noCons: 'لا يوجد', containers: 'الحاويات',
     roleNo: 'دورك لا يتيح طلب الفحص', run: 'تشغيل خلية الفحص', ran: 'انتهت خلية الفحص من الشحنة {id}. النتيجة الآن ضمن المكتملة.', cellNote: 'الخلية محاكاة، وهي تحل محل منفّذ حقيقي.',
