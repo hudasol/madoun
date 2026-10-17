@@ -378,6 +378,8 @@ export interface InspectionResult {
   seal: { id: string; intact: boolean };
   findings: InspectionFinding[];
   mediaRefs: string[];
+  /** Integrity of captured media: SHA-256 of each file as the performer recorded it. Optional; the simulator does not set it. */
+  media?: { ref: string; sha256: string; bytes: number }[];
 }
 
 export type ConfirmationDecision = 'upheld' | 'overturned';
