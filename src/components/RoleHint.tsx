@@ -11,6 +11,7 @@ const T = {
     'resolve-exception': 'Only customs, or the authority that owns this item, can resolve it.',
     'run-inspection': 'Only customs officers can request an inspection.',
     'approve-suggestion': 'Only customs officers can approve a rule change.',
+    'confirm-inspection': 'Only a customs officer can confirm or overturn a machine finding.',
     as: 'You are viewing as {who}.',
   },
   ar: {
@@ -18,6 +19,7 @@ const T = {
     'resolve-exception': 'يمكن للجمارك أو للجهة المسؤولة عن البند فقط حلّه.',
     'run-inspection': 'يمكن لضباط الجمارك فقط طلب الفحص.',
     'approve-suggestion': 'يمكن لضباط الجمارك فقط اعتماد تغيير القاعدة.',
+    'confirm-inspection': 'يمكن لضابط الجمارك فقط تأكيد نتيجة الفحص الآلي أو نقضها.',
     as: 'أنت تعرض بصفة {who}.',
   },
 };

@@ -2,7 +2,7 @@
 
 import { RoleHint } from '@/components/RoleHint';
 import { useState } from 'react';
-import type { InspectionFinding, ShipmentFile, ShipmentPlan } from '@/engine';
+import { awaitingOfficerConfirmation, type ConfirmationDecision, type InspectionFinding, type ShipmentFile, type ShipmentPlan } from '@/engine';
 import { useBi, useFormat, useLocale, useT } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useLabels } from './labels';
@@ -20,6 +20,13 @@ const T = {
     'seal-broken': 'Seal broken', 'undeclared-goods': 'Undeclared goods', 'quantity-mismatch': 'Quantity mismatch', damage: 'Damage', 'temperature-excursion': 'Temperature excursion',
     'prohibited-item': 'Prohibited item', none: 'Nothing found', info: 'Information', minor: 'Minor', major: 'Major',
     receiptNote: 'Recorded as an evidence receipt (method: inspection).',
+    receiptPending: 'Recorded as a pending evidence receipt. It becomes verified only if an officer upholds the finding.',
+    awaitTitle: 'Officer confirmation required',
+    awaitBody: 'A machine ({kind}) reported a serious finding. Until a customs officer upholds or overturns it, the receipt stays pending, no authority can rely on it, and the learning loop does not see it.',
+    decision: 'Decision', upheld: 'Uphold the finding', overturned: 'Overturn the finding', confNote: 'Officer note (required)',
+    confirmBtn: 'Record decision', needConfNote: 'Write a note that explains the decision.', needDecision: 'Choose uphold or overturn.',
+    confirmedOk: 'Decision recorded in the audit trail.', confirmFail: 'The decision was not accepted. Check the note and try again.',
+    confTitle: 'Officer confirmation', conf_upheld: 'Upheld by {who}, {when}', conf_overturned: 'Overturned by {who}, {when}',
   },
   ar: {
     excTitle: 'استثناءات هذه الشحنة', excNone: 'لا توجد استثناءات مفتوحة. لكل خطوة منتظرة مسؤول وهي ضمن مهلتها.',
@@ -33,6 +40,13 @@ const T = {
     'seal-broken': 'ختم مكسور', 'undeclared-goods': 'بضائع غير مصرّح بها', 'quantity-mismatch': 'اختلاف في الكمية', damage: 'تلف', 'temperature-excursion': 'خروج عن درجة الحرارة',
     'prohibited-item': 'صنف محظور', none: 'لم يُعثر على شيء', info: 'معلومة', minor: 'طفيف', major: 'جسيم',
     receiptNote: 'سُجّلت كإيصال دليل (الطريقة: فحص).',
+    receiptPending: 'سُجّلت كإيصال دليل معلّق، ولا يصبح معتمداً إلا إذا أكّد الضابط الملاحظة.',
+    awaitTitle: 'مطلوب تأكيد الضابط',
+    awaitBody: 'أبلغ جهاز آلي ({kind}) عن ملاحظة جسيمة. وإلى أن يؤكدها ضابط الجمارك أو ينقضها يبقى الإيصال معلّقاً، ولا يمكن لأي جهة الاعتماد عليه، ولا تصل إلى حلقة التعلّم.',
+    decision: 'القرار', upheld: 'تأكيد الملاحظة', overturned: 'نقض الملاحظة', confNote: 'ملاحظة الضابط (إلزامية)',
+    confirmBtn: 'تسجيل القرار', needConfNote: 'اكتب ملاحظة تشرح القرار.', needDecision: 'اختر التأكيد أو النقض.',
+    confirmedOk: 'تم تسجيل القرار في سجل التدقيق.', confirmFail: 'لم يُقبل القرار. تحقق من الملاحظة وأعد المحاولة.',
+    confTitle: 'تأكيد الضابط', conf_upheld: 'أكّدها {who}، {when}', conf_overturned: 'نقضها {who}، {when}',
   },
 };
 
@@ -146,10 +160,69 @@ export function InspectionSection({ file }: { file: ShipmentFile }) {
             {res.mediaRefs.length > 0 && (
               <p className="mt-3 text-sm"><span className="text-muted">{t('media')}:</span> <span className="mono text-[0.85rem]">{res.mediaRefs.join(', ')}</span></p>
             )}
-            <p className="mt-3 text-sm text-muted">{t('receiptNote')}</p>
+            {awaitingOfficerConfirmation(file) && <ConfirmFinding file={file} onDone={setMsg} />}
+            {file.inspectionConfirmation && (
+              <div className="mt-3">
+                <h4 className="text-sm text-muted">{t('confTitle')}</h4>
+                <p className="font-medium">{t(`conf_${file.inspectionConfirmation.decision}`, { who: L.owner(file.inspectionConfirmation.officerId), when: f.dateTime(file.inspectionConfirmation.at) })}</p>
+                <p className="text-[0.95rem] text-muted">{file.inspectionConfirmation.note}</p>
+              </div>
+            )}
+            <p className="mt-3 text-sm text-muted">{awaitingOfficerConfirmation(file) ? t('receiptPending') : t('receiptNote')}</p>
           </div>
         )}
       </div>
     </section>
+  );
+}
+
+/** Banner and Confirm or Overturn form for a serious machine finding. The form is offered to customs officers only. */
+function ConfirmFinding({ file, onDone }: { file: ShipmentFile; onDone: (m: string) => void }) {
+  const t = useT(T);
+  const s = useStore();
+  const [decision, setDecision] = useState<ConfirmationDecision | ''>('');
+  const [note, setNote] = useState('');
+  const [bad, setBad] = useState<'' | 'decision' | 'note'>('');
+  const res = file.inspectionResult!;
+  const id = file.shipment.id;
+  return (
+    <div className="mt-4 rounded-[3px] border-2 border-ink p-3" role="region" aria-labelledby={`cf-h-${id}`} data-confirm-form>
+      <h4 id={`cf-h-${id}`} className="font-semibold">{t('awaitTitle')}</h4>
+      <p className="mt-1 max-w-[70ch] text-[0.95rem]">{t('awaitBody', { kind: t(res.performerKind) })}</p>
+      {s.can('confirm-inspection') ? (
+        <form
+          className="mt-3 space-y-3"
+          noValidate
+          onSubmit={(ev) => {
+            ev.preventDefault();
+            const n = note.trim();
+            if (!decision) { setBad('decision'); onDone(t('needDecision')); return; }
+            if (!n) { setBad('note'); onDone(t('needConfNote')); return; }
+            setBad('');
+            onDone(s.confirmInspection(id, decision, n) ? t('confirmedOk') : t('confirmFail'));
+          }}
+        >
+          <fieldset aria-invalid={bad === 'decision'}>
+            <legend className="text-sm text-muted">{t('decision')}</legend>
+            <div className="mt-1 flex flex-wrap gap-x-6 gap-y-1">
+              {(['upheld', 'overturned'] as const).map((d) => (
+                <label key={d} className="flex items-center gap-2">
+                  <input type="radio" name={`cf-d-${id}`} value={d} checked={decision === d} onChange={() => setDecision(d)} />
+                  {t(d)}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <label className="flex max-w-[60ch] flex-col gap-1 text-sm text-muted" htmlFor={`cf-n-${id}`}>
+            {t('confNote')}
+            <textarea id={`cf-n-${id}`} rows={2} maxLength={1000} value={note} aria-invalid={bad === 'note'} onChange={(ev) => setNote(ev.target.value)}
+              className="rounded-[3px] border border-line bg-panel px-3 py-1.5 text-base text-ink" />
+          </label>
+          <button type="submit" className="btn btn-primary">{t('confirmBtn')}</button>
+        </form>
+      ) : (
+        <RoleHint action="confirm-inspection" className="mt-2" />
+      )}
+    </div>
   );
 }

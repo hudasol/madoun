@@ -6,7 +6,7 @@ import type { EvidenceReceipt } from '@/engine';
  * who may act, and which evidence a role may see under each receipt's sharing policy.
  */
 export type ViewAs = 'customs' | 'auditor' | 'operator' | `reg:${string}`;
-export type Action = 'override-lane' | 'resolve-exception' | 'run-inspection' | 'approve-suggestion';
+export type Action = 'override-lane' | 'resolve-exception' | 'run-inspection' | 'approve-suggestion' | 'confirm-inspection';
 
 export const DEFAULT_VIEW_AS: ViewAs = 'customs';
 export const CUSTOMS_ID = 'adc';

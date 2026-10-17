@@ -24,7 +24,7 @@ const T = {
     count: '{n} receipts shown', caption: 'Evidence receipts', receipt: 'Receipt', scope: 'Scope', method: 'Method', sharedWith: 'Shared with', reuses: 'Times reused',
     allAuth: 'All authorities', shipmentScope: 'This shipment only', traderScope: 'All goods of {trader}', productScope: 'Products of {trader}', hs6: 'HS {codes}', more: '+{n} more',
     open: 'Show details', close: 'Hide details', reuseLog: 'Where it was reused', none: 'Not yet reused.', shipment: 'Shipment', acceptedBy: 'Accepted by', requirement: 'Requirement', at: 'When',
-    hash: 'Hash', prev: 'Previous hash', revokedBecause: 'Revoked: {r}', state_valid: 'valid', state_soon: 'expires soon', state_expired: 'expired', state_revoked: 'revoked',
+    hash: 'Hash', prev: 'Previous hash', revokedBecause: 'Revoked: {r}', state_valid: 'valid', state_soon: 'expires soon', state_expired: 'expired', state_revoked: 'revoked', state_pending: 'awaiting officer confirmation',
     empty: 'No receipts match this filter.', focus: 'Showing one receipt from a link.', showAll: 'Show all receipts', issuer: 'Issued by', summary: 'What was verified',
   },
   ar: {
@@ -38,7 +38,7 @@ const T = {
     count: 'تم عرض {n} إيصال', caption: 'إيصالات الأدلة', receipt: 'الإيصال', scope: 'النطاق', method: 'الطريقة', sharedWith: 'مشترك مع', reuses: 'مرات إعادة الاستخدام',
     allAuth: 'كل الجهات', shipmentScope: 'هذه الشحنة فقط', traderScope: 'كل بضائع {trader}', productScope: 'منتجات {trader}', hs6: 'رمز النظام المنسق {codes}', more: '+{n} أخرى',
     open: 'عرض التفاصيل', close: 'إخفاء التفاصيل', reuseLog: 'أين أُعيد استخدامه', none: 'لم يُعد استخدامه بعد.', shipment: 'الشحنة', acceptedBy: 'قبلته', requirement: 'المتطلب', at: 'الوقت',
-    hash: 'البصمة', prev: 'البصمة السابقة', revokedBecause: 'ملغى: {r}', state_valid: 'ساري', state_soon: 'ينتهي قريباً', state_expired: 'منتهي', state_revoked: 'ملغى',
+    hash: 'البصمة', prev: 'البصمة السابقة', revokedBecause: 'ملغى: {r}', state_valid: 'ساري', state_soon: 'ينتهي قريباً', state_expired: 'منتهي', state_revoked: 'ملغى', state_pending: 'بانتظار تأكيد الضابط',
     empty: 'لا توجد إيصالات تطابق هذا الخيار.', focus: 'يتم عرض إيصال واحد من رابط.', showAll: 'عرض كل الإيصالات', issuer: 'الجهة المصدرة', summary: 'ما الذي تم التحقق منه',
   },
 };
@@ -76,8 +76,9 @@ export function EvidenceBoard() {
   const total = s.world?.receipts.length ?? 0;
   const atMs = ms(s.at || new Date().toISOString());
 
-  const state = (r: EvidenceReceipt): 'valid' | 'soon' | 'expired' | 'revoked' => {
+  const state = (r: EvidenceReceipt): 'valid' | 'soon' | 'expired' | 'revoked' | 'pending' => {
     if (r.status === 'revoked') return 'revoked';
+    if (r.status === 'pending') return 'pending';
     const u = ms(r.validUntil);
     if (u <= atMs) return 'expired';
     if (u - atMs <= H72) return 'soon';
@@ -131,7 +132,7 @@ export function EvidenceBoard() {
   };
 
   const stateLabel = (r: EvidenceReceipt) => t(`state_${state(r)}` as 'state_valid');
-  const tone = (r: EvidenceReceipt): StampTone => { const x = state(r); return x === 'valid' ? 'verified' : x === 'soon' ? 'warn' : 'void'; };
+  const tone = (r: EvidenceReceipt): StampTone => { const x = state(r); return x === 'valid' ? 'verified' : x === 'soon' || x === 'pending' ? 'warn' : 'void'; };
 
   return (
     <div>

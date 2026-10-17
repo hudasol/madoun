@@ -12,7 +12,7 @@ describe('role lens', () => {
     expect(parseViewAs('reg:../x')).toBe('customs');
   });
   it('customs can act, auditors and operators cannot', () => {
-    for (const a of ['override-lane', 'resolve-exception', 'run-inspection', 'approve-suggestion'] as const) {
+    for (const a of ['override-lane', 'resolve-exception', 'run-inspection', 'approve-suggestion', 'confirm-inspection'] as const) {
       expect(can('customs', a, 'adafsa')).toBe(true);
       expect(can('auditor', a, 'adc')).toBe(false);
       expect(can('operator', a, 'adc')).toBe(false);
@@ -23,6 +23,7 @@ describe('role lens', () => {
     expect(can('reg:adafsa', 'resolve-exception', 'moiat')).toBe(false);
     expect(can('reg:adafsa', 'resolve-exception')).toBe(false);
     expect(can('reg:adafsa', 'override-lane')).toBe(false);
+    expect(can('reg:adafsa', 'confirm-inspection', 'adafsa')).toBe(false);
     expect(can('reg:adafsa', 'approve-suggestion')).toBe(false);
   });
   it('evidence visibility follows the custodian sharing policy', () => {

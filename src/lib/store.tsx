@@ -7,7 +7,8 @@ import { generate, type Generated } from '@/data/generate';
 import { actorId, can as canDo, canSeeReceipt, parseViewAs, DEFAULT_VIEW_AS, type Action, type ViewAs } from '@/lib/roles';
 import {
   addHours, computeKpis, computeLearning, createInspectionTask, detectExceptions, hoursBetween, makeRng, ms,
-  outcomeFromInspection, planShipment, replay, resultToReceiptDraft, simulate, simulateInspectionCell,
+  outcomeFromInspection, planShipment, replay, requiresOfficerConfirmation, resultToReceiptDraft, simulate, simulateInspectionCell,
+  type ConfirmationDecision,
   type Directory, type ExceptionItem, type Kpis, type Lane, type LearningReport, type MadounEvent, type Outcome,
   type ShipmentFile, type ShipmentPlan, type SimOutput, type Suggestion, type World,
   apply, validateEvent,
@@ -62,6 +63,8 @@ export interface Store {
   approveSuggestion: (s: Suggestion) => void;
   previewSuggestion: (s: Suggestion) => SuggestionPreview | undefined;
   runInspection: (shipmentId: string) => void;
+  /** Officer upholds or overturns a serious machine finding. Returns false when the engine rejected it. */
+  confirmInspection: (shipmentId: string, decision: ConfirmationDecision, note: string) => boolean;
   resetDemo: () => void;
   overlayCount: number;
   viewAs: ViewAs;
@@ -167,6 +170,7 @@ export function MadounProvider({ children }: { children: ReactNode }) {
         if (w) w = apply(w, e);
       }
       if (ok.length) setOverlay((o) => [...o, ...ok]);
+      return ok.length;
     },
     [world],
   );
@@ -228,14 +232,28 @@ export function MadounProvider({ children }: { children: ReactNode }) {
       const task = createInspectionTask(f.shipment, p.assessment, at, actor);
       const base = simulateInspectionCell(task, data.g.truth[shipmentId] ?? {}, rng, at);
       const result = { ...base, completedAt: at }; // completes at the viewed moment so it shows immediately
-      push([
+      const evs: MadounEvent[] = [
         { type: 'InspectionRequested', at, task },
         { type: 'InspectionCompleted', at, result },
         { type: 'ReceiptIssued', at, receipt: resultToReceiptDraft(result) },
-        { type: 'OutcomeRecorded', at, outcome: outcomeFromInspection(f.shipment, p.assessment, result, [], at) },
-      ]);
+      ];
+      // A serious machine finding waits for an officer; the outcome is recorded when it is confirmed.
+      if (!requiresOfficerConfirmation(result)) evs.push({ type: 'OutcomeRecorded', at, outcome: outcomeFromInspection(f.shipment, p.assessment, result, [], at) });
+      push(evs);
     },
     [data, world, plan, overlay.length, at, push, actor],
+  );
+
+  const confirmInspection = useCallback(
+    (shipmentId: string, decision: ConfirmationDecision, note: string): boolean => {
+      const f = world?.shipments[shipmentId];
+      const p = plan(shipmentId);
+      if (!f?.inspectionResult || !p) return false;
+      const evs: MadounEvent[] = [{ type: 'InspectionConfirmed', at, shipmentId, officerId: actor, decision, note }];
+      if (!f.outcome) evs.push({ type: 'OutcomeRecorded', at, outcome: outcomeFromInspection(f.shipment, f.assessment ?? p.assessment, f.inspectionResult, [], at, 'risk', decision) });
+      return push(evs) > 0;
+    },
+    [world, plan, at, actor, push],
   );
 
   const resetDemo = useCallback(() => {
@@ -265,6 +283,7 @@ export function MadounProvider({ children }: { children: ReactNode }) {
     approveSuggestion,
     previewSuggestion,
     runInspection,
+    confirmInspection,
     resetDemo,
     overlayCount: overlay.length,
     viewAs,
