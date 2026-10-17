@@ -70,4 +70,8 @@ For each metric and scenario: the mean over 30 seeds with a 95 percent interval,
 `npm run cell` runs all 4 scenarios for all 30 seeds and writes `docs/cell-results.json` and `docs/cell-experiment.md`, with every prediction marked HIT or MISS. A test fails if either file is out of date with the code.
 
 ## Amendments
-None yet.
+Both amendments were made on 18 October 2026, after the first run, in response to an independent review. The original text above is unchanged.
+
+**A1. Random streams brought in line with this plan.** The first implementation drew service times, detection and faults from one random stream, although the plan above says they come from separate streams. That weakened the common random numbers between scenarios. The model now uses three separate streams (service, detection, faults) as written, and the results file reports the corrected run. The first run gave the same pattern: every prediction hit except P5, which missed (difference in median lead time S4 minus S1 of -0.01 h, interval -0.12 to 0.09).
+
+**A2. P6 reclassified as a structural check.** In the model, a task with a serious machine finding completes only when the officer's confirmation ends, so M7 equals 100 percent by construction and P6 cannot fail. It is still checked and reported, but as a structural invariant, and it is no longer counted among the predictions. Hit and miss counts are therefore over 13 predictions. No condition, parameter or seed was changed.
