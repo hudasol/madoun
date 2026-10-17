@@ -36,6 +36,27 @@ export async function handle(request: Request, fn: () => Response | Promise<Resp
   }
 }
 
+/**
+ * Reads a JSON request body under a byte cap. Rejects on the declared Content-Length before reading,
+ * then re-checks the bytes actually received (multi-byte text counts as bytes, not characters).
+ * Returns the parsed value, or an error Response (415, 413 or 400) in the standard error shape.
+ */
+export async function readJsonBody(request: Request, maxBytes: number): Promise<{ body: unknown } | Response> {
+  const ct = request.headers.get('content-type') ?? '';
+  if (!ct.toLowerCase().includes('json')) {
+    return errorResponse(415, 'unsupported_media_type', "Content-Type must be 'application/json'.");
+  }
+  const declared = Number(request.headers.get('content-length') ?? 0);
+  if (declared > maxBytes) return errorResponse(413, 'payload_too_large', `Body must be at most ${maxBytes} bytes.`);
+  const text = await request.text();
+  if (new TextEncoder().encode(text).length > maxBytes) return errorResponse(413, 'payload_too_large', `Body must be at most ${maxBytes} bytes.`);
+  try {
+    return { body: JSON.parse(text) };
+  } catch {
+    return errorResponse(400, 'invalid_json', 'Body is not valid JSON.');
+  }
+}
+
 export interface Paging { page: number; pageSize: number }
 
 export const DEFAULT_PAGE_SIZE = 25;
