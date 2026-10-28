@@ -58,12 +58,12 @@ describe('post-clearance audits', () => {
       expect(o!.lane).toBe('green');
       expect(o!.result).not.toBe('not-inspected');
     }
-    for (const o of audited.filter((o) => o!.sampling === 'random-audit')) expect(isRandomAudit(o!.shipmentId)).toBe(true);
+    for (const a of audited.filter((x) => x!.sampling === 'random-audit')) expect(isRandomAudit(a!.shipmentId)).toBe(true);
   });
 
   it('never change release times: audits happen after clearance', () => {
     const cleared = new Map(sim.results.map((r) => [r.shipmentId, Date.parse(r.clearedAt)]));
-    for (const o of outcomes.filter((o) => o!.sampling)) expect(Date.parse(o!.recordedAt)).toBeGreaterThan(cleared.get(o!.shipmentId)!);
+    for (const a of outcomes.filter((x) => x!.sampling)) expect(Date.parse(a!.recordedAt)).toBeGreaterThan(cleared.get(a!.shipmentId)!);
   });
 
   it('only random audits of green traffic estimate the base rate', () => {

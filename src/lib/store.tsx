@@ -265,6 +265,8 @@ export function MadounProvider({ children }: { children: ReactNode }) {
     if (data) setAt(data.endAt);
   }, [data, previewCache]);
 
+  const canSee = useCallback((r: Parameters<typeof canSeeReceipt>[1]) => canSeeReceipt(viewAs, r), [viewAs]);
+
   const value: Store = {
     ready: !!data && !!world,
     g: data?.g,
@@ -292,7 +294,7 @@ export function MadounProvider({ children }: { children: ReactNode }) {
     viewAs,
     setViewAs,
     can: (action, authorityId) => canDo(viewAs, action, authorityId),
-    canSee: (r) => canSeeReceipt(viewAs, r),
+    canSee,
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

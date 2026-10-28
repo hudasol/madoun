@@ -1,6 +1,6 @@
 {
   "name": "madoun",
-  "version": "0.1.0",
+  "version": "1.5.0",
   "private": true,
   "description": "Shared shipment evidence file and risk-lane engine for faster, pre-arrival customs clearance.",
   "license": "MIT",
@@ -17,7 +17,10 @@
     "worldhash": "tsx scripts/worldhash.ts",
     "eval": "tsx scripts/eval.ts",
     "cell": "tsx scripts/cell.ts",
-    "offline": "node scripts/offline-check.mjs 3300"
+    "offline": "node scripts/offline-check.mjs 3300",
+    "lint": "oxlint",
+    "test:coverage": "vitest run --coverage",
+    "check": "npm run lint && npm run typecheck && npm test"
   },
   "dependencies": {
     "@fontsource-variable/space-grotesk": "^5.3.0",
@@ -34,8 +37,10 @@
     "@types/node": "^26.6.4",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "@vitest/coverage-v8": "^5.0.5",
     "axe-core": "^4.14.0",
     "fast-check": "^4.10.2",
+    "oxlint": "^1.90.0",
     "playwright-core": "^1.64.0",
     "postcss": "^8.5.29",
     "tailwindcss": "^4.3.3",
