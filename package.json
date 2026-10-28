@@ -26,7 +26,7 @@
     "baselines": "tsx scripts/baselines.ts"
   },
   "dependencies": {
-    "@fontsource-variable/space-grotesk": "^5.3.0",
+    "@fontsource-variable/ibm-plex-sans": "^5.3.0",
     "@fontsource/ibm-plex-mono": "^5.3.0",
     "@fontsource/ibm-plex-sans-arabic": "^5.3.0",
     "@noble/curves": "^2.4.0",
