@@ -9,6 +9,7 @@ import { useStore } from '@/lib/store';
 import { Modelled } from './Figures';
 import { ReleaseChart } from './ReleaseChart';
 import { Robustness } from './Robustness';
+import { ReferencePoints } from './ReferencePoints';
 import { ValuePanel } from './ValuePanel';
 
 const T = {
@@ -177,6 +178,7 @@ export function SimulatorBoard() {
           </section>
 
           <Robustness />
+          <ReferencePoints />
 
           <ValuePanel avgHoursSaved={results.length ? results.reduce((a, r) => a + (r.todayHours - r.madounHours), 0) / results.length : 0} />
         </>
