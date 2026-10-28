@@ -1,6 +1,6 @@
 # Threat model (STRIDE)
 
-Scope: the Madoun prototype as built here (browser app, mock REST API including the inspection gateway routes, pure TypeScript engine, reference robot gateway). All data is synthetic and the API is a mock; this document says what the design defends against **today**, what it only demonstrates, and what a production deployment must add. Nothing here claims the prototype is secure enough to hold real declarations. Last updated for v1.5.0.
+Scope: the Madoun prototype as built here (browser app, REST API with optional bearer key authentication including the inspection gateway routes, pure TypeScript engine, reference robot gateway). All data is synthetic and the API is a mock; this document says what the design defends against **today**, what it only demonstrates, and what a production deployment must add. Nothing here claims the prototype is secure enough to hold real declarations. Last updated for v1.5.0.
 
 ## Assets
 | Asset | Why it matters |
@@ -25,10 +25,10 @@ Scope: the Madoun prototype as built here (browser app, mock REST API including 
 | | Threat | Today | Production requirement |
 |---|---|---|---|
 | **S**poofing | Someone claims a receipt was verified by an authority | Receipts are Ed25519 signed over the chain hash; a signature from the wrong authority is rejected (`wrong-signer`). **Demo keys are public**, so this proves the mechanism only. | Per authority keys in an HSM or KMS, rotation, a published key registry, revocation (docs/key-custody.md). |
-| | Anyone calls the API, including the gateway result route | `authorize()` seam exists and always allows. **Anyone can post an inspection result today.** | Mutual TLS or signed requests per device and per adapter, scoped to the routes each may call. |
+| | Anyone calls the API, including the gateway result route | With `MADOUN_AUTH=keys` every route except `/health` needs a bearer key, stored only as a SHA-256 hash and compared in constant time; each key has a role and scopes, a route answers 403 without its scope, and a missing or invalid key configuration refuses every request with 503 instead of falling back to open access (tested). **The public demo runs with authentication off.** | Mutual TLS or signed requests per device and adapter, key rotation, identity from the host organisation. |
 | | A fake robot reports a serious finding | Cannot become verified evidence or a learning outcome without a customs officer upholding it (`requiresOfficerConfirmation` and `validateEvent`; the property test covers receipts issued early or under other ids, second results and early outcomes, after an independent review found those paths). The device route refuses officer results. A fake robot can still create a pending receipt and waste officer time, and a fake clean result is recorded as verified. | Device identity as above; per device rate limits; alerting on overturn rates. |
 | | Ledger operator presents a forged checkpoint | Checkpoints are Ed25519 signed; the offline verifier uses a key supplied by the verifier, not by the proof. Default key is the public demo key; a file based development key is optional. | Operator key in an HSM or KMS; the public key distributed out of band. |
-| | Role lens used as access control | Documented as demo only; the UI says so. | Server side authorisation on every route. |
+| | Role lens used as access control | The browser role lens is a demo of views, not access control; the UI says so. The API enforces roles when keys are on. | Keep. |
 | **T**ampering | Edit a stored receipt, or drop, reorder or duplicate one | Hash chain detects every one of these (property tested). Signatures detect edits without the key. | Keep. |
 | | Rewrite the whole ledger | RFC 6962 Merkle checkpoints with inclusion and consistency proofs (`/api/v1/ledger/checkpoint?from=N`, `scripts/verify-proof.mjs`); a rewrite is not consistent with any checkpoint kept earlier (tested). **Only effective if someone outside the operator keeps checkpoints.** | Independent witnesses or periodic publication of checkpoints to parties outside the operator. |
 | | Change a receipt's status or summary text (for example revoked to verified) | **Not covered by hashes or proofs**: only the fields in `HASHED_RECEIPT_FIELDS` are hashed; status, summary text and revocation reason are not (stated in code, the API description, the verifier output and a test). Status changes are events in the audit log. | Sign status change events, or add a signed status log with its own checkpoints. |
@@ -58,7 +58,7 @@ Scope: the Madoun prototype as built here (browser app, mock REST API including 
 
 ## Residual risks, stated plainly
 1. Demo signing keys are public. Do not read a green tick or a VALID proof as identity.
-2. No authentication on the mock API, including the gateway result route.
+2. The public demo runs with authentication off. With keys on, the check is bearer keys only, with no mutual TLS and no rotation tooling.
 3. Inline script allowance in the CSP.
 4. Checkpoints protect against a rewrite only if parties outside the operator keep them.
 5. Receipt status is not covered by hashes, signatures or proofs.
