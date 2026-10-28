@@ -1,0 +1,1317 @@
+{
+  "publishedPreArrivalPct": 71,
+  "baseline": {
+    "scenario": {
+      "leadMult": 1,
+      "regulatorQueue": 1,
+      "customsPublished": false
+    },
+    "kpis": {
+      "shipments": 240,
+      "todayPreArrivalPct": 62.5,
+      "madounPreArrivalPct": 77.1,
+      "todayMedianHours": 27.3,
+      "madounMedianHours": 16,
+      "todayP90Hours": 48.3,
+      "madounP90Hours": 31.1,
+      "medianReductionPct": 41.4,
+      "repeatChecksAvoided": 294,
+      "todayInactionHours": 4442,
+      "madounInactionHours": 2136.8,
+      "byLane": {
+        "green": {
+          "count": 182,
+          "todayMedian": 25.3,
+          "madounMedian": 16,
+          "madounPreArrivalPct": 81.3
+        },
+        "amber": {
+          "count": 46,
+          "todayMedian": 35.3,
+          "madounMedian": 20,
+          "madounPreArrivalPct": 65.2
+        },
+        "red": {
+          "count": 12,
+          "todayMedian": 44,
+          "madounMedian": 32.5,
+          "madounPreArrivalPct": 58.3
+        }
+      }
+    }
+  },
+  "calibrated": {
+    "leadMult": 1.3124999999959073,
+    "kpis": {
+      "shipments": 240,
+      "todayPreArrivalPct": 71.3,
+      "madounPreArrivalPct": 85,
+      "todayMedianHours": 27.3,
+      "madounMedianHours": 16,
+      "todayP90Hours": 48.3,
+      "madounP90Hours": 31.1,
+      "medianReductionPct": 41.4,
+      "repeatChecksAvoided": 294,
+      "todayInactionHours": 4442,
+      "madounInactionHours": 2136.8,
+      "byLane": {
+        "green": {
+          "count": 182,
+          "todayMedian": 25.3,
+          "madounMedian": 16,
+          "madounPreArrivalPct": 87.4
+        },
+        "amber": {
+          "count": 46,
+          "todayMedian": 35.3,
+          "madounMedian": 20,
+          "madounPreArrivalPct": 80.4
+        },
+        "red": {
+          "count": 12,
+          "todayMedian": 44,
+          "madounMedian": 32.5,
+          "madounPreArrivalPct": 66.7
+        }
+      }
+    }
+  },
+  "calibratedWithPublishedCustomsSpeed": {
+    "leadMult": 0.6578947368413537,
+    "kpis": {
+      "shipments": 240,
+      "todayPreArrivalPct": 71.3,
+      "madounPreArrivalPct": 75.4,
+      "todayMedianHours": 13.6,
+      "madounMedianHours": 12.4,
+      "todayP90Hours": 33.9,
+      "madounP90Hours": 23.6,
+      "medianReductionPct": 9.2,
+      "repeatChecksAvoided": 294,
+      "todayInactionHours": 1877,
+      "madounInactionHours": 989,
+      "byLane": {
+        "green": {
+          "count": 182,
+          "todayMedian": 12.5,
+          "madounMedian": 11.6,
+          "madounPreArrivalPct": 79.1
+        },
+        "amber": {
+          "count": 46,
+          "todayMedian": 22.8,
+          "madounMedian": 15.1,
+          "madounPreArrivalPct": 67.4
+        },
+        "red": {
+          "count": 12,
+          "todayMedian": 29.7,
+          "madounMedian": 28.2,
+          "madounPreArrivalPct": 50
+        }
+      }
+    }
+  },
+  "grid": [
+    {
+      "scenario": {
+        "leadMult": 0.6,
+        "regulatorQueue": 0.5,
+        "customsPublished": false
+      },
+      "kpis": {
+        "shipments": 240,
+        "todayPreArrivalPct": 51.3,
+        "madounPreArrivalPct": 64.6,
+        "todayMedianHours": 21,
+        "madounMedianHours": 12,
+        "todayP90Hours": 45.3,
+        "madounP90Hours": 29.1,
+        "medianReductionPct": 42.9,
+        "repeatChecksAvoided": 286,
+        "todayInactionHours": 3503.5,
+        "madounInactionHours": 1633.7,
+        "byLane": {
+          "green": {
+            "count": 182,
+            "todayMedian": 20.8,
+            "madounMedian": 12,
+            "madounPreArrivalPct": 67.6
+          },
+          "amber": {
+            "count": 46,
+            "todayMedian": 30,
+            "madounMedian": 18.3,
+            "madounPreArrivalPct": 54.3
+          },
+          "red": {
+            "count": 12,
+            "todayMedian": 39.3,
+            "madounMedian": 26.5,
+            "madounPreArrivalPct": 58.3
+          }
+        }
+      }
+    },
+    {
+      "scenario": {
+        "leadMult": 0.8,
+        "regulatorQueue": 0.5,
+        "customsPublished": false
+      },
+      "kpis": {
+        "shipments": 240,
+        "todayPreArrivalPct": 57.9,
+        "madounPreArrivalPct": 75.4,
+        "todayMedianHours": 21,
+        "madounMedianHours": 12,
+        "todayP90Hours": 45.3,
+        "madounP90Hours": 29.1,
+        "medianReductionPct": 42.9,
+        "repeatChecksAvoided": 286,
+        "todayInactionHours": 3503.5,
+        "madounInactionHours": 1633.7,
+        "byLane": {
+          "green": {
+            "count": 182,
+            "todayMedian": 20.8,
+            "madounMedian": 12,
+            "madounPreArrivalPct": 80.2
+          },
+          "amber": {
+            "count": 46,
+            "todayMedian": 30,
+            "madounMedian": 18.3,
+            "madounPreArrivalPct": 60.9
+          },
+          "red": {
+            "count": 12,
+            "todayMedian": 39.3,
+            "madounMedian": 26.5,
+            "madounPreArrivalPct": 58.3
+          }
+        }
+      }
+    },
+    {
+      "scenario": {
+        "leadMult": 1,
+        "regulatorQueue": 0.5,
+        "customsPublished": false
+      },
+      "kpis": {
+        "shipments": 240,
+        "todayPreArrivalPct": 64.2,
+        "madounPreArrivalPct": 82.5,
+        "todayMedianHours": 21,
+        "madounMedianHours": 12,
+        "todayP90Hours": 45.3,
+        "madounP90Hours": 29.1,
+        "medianReductionPct": 42.9,
+        "repeatChecksAvoided": 286,
+        "todayInactionHours": 3503.5,
+        "madounInactionHours": 1633.7,
+        "byLane": {
+          "green": {
+            "count": 182,
+            "todayMedian": 20.8,
+            "madounMedian": 12,
+            "madounPreArrivalPct": 88.5
+          },
+          "amber": {
+            "count": 46,
+            "todayMedian": 30,
+            "madounMedian": 18.3,
+            "madounPreArrivalPct": 65.2
+          },
+          "red": {
+            "count": 12,
+            "todayMedian": 39.3,
+            "madounMedian": 26.5,
+            "madounPreArrivalPct": 58.3
+          }
+        }
+      }
+    },
+    {
+      "scenario": {
+        "leadMult": 1.2,
+        "regulatorQueue": 0.5,
+        "customsPublished": false
+      },
+      "kpis": {
+        "shipments": 240,
+        "todayPreArrivalPct": 69.6,
+        "madounPreArrivalPct": 85.8,
+        "todayMedianHours": 21,
+        "madounMedianHours": 12,
+        "todayP90Hours": 45.3,
+        "madounP90Hours": 29.1,
+        "medianReductionPct": 42.9,
+        "repeatChecksAvoided": 286,
+        "todayInactionHours": 3503.5,
+        "madounInactionHours": 1633.7,
+        "byLane": {
+          "green": {
+            "count": 182,
+            "todayMedian": 20.8,
+            "madounMedian": 12,
+            "madounPreArrivalPct": 90.7
+          },
+          "amber": {
+            "count": 46,
+            "todayMedian": 30,
+            "madounMedian": 18.3,
+            "madounPreArrivalPct": 71.7
+          },
+          "red": {
+            "count": 12,
+            "todayMedian": 39.3,
+            "madounMedian": 26.5,
+            "madounPreArrivalPct": 66.7
+          }
+        }
+      }
+    },
+    {
+      "scenario": {
+        "leadMult": 1.6,
+        "regulatorQueue": 0.5,
+        "customsPublished": false
+      },
+      "kpis": {
+        "shipments": 240,
+        "todayPreArrivalPct": 82.5,
+        "madounPreArrivalPct": 92.5,
+        "todayMedianHours": 21,
+        "madounMedianHours": 12,
+        "todayP90Hours": 45.3,
+        "madounP90Hours": 29.1,
+        "medianReductionPct": 42.9,
+        "repeatChecksAvoided": 286,
+        "todayInactionHours": 3503.5,
+        "madounInactionHours": 1633.7,
+        "byLane": {
+          "green": {
+            "count": 182,
+            "todayMedian": 20.8,
+            "madounMedian": 12,
+            "madounPreArrivalPct": 95.6
+          },
+          "amber": {
+            "count": 46,
+            "todayMedian": 30,
+            "madounMedian": 18.3,
+            "madounPreArrivalPct": 84.8
+          },
+          "red": {
+            "count": 12,
+            "todayMedian": 39.3,
+            "madounMedian": 26.5,
+            "madounPreArrivalPct": 75
+          }
+        }
+      }
+    },
+    {
+      "scenario": {
+        "leadMult": 0.6,
+        "regulatorQueue": 1,
+        "customsPublished": false
+      },
+      "kpis": {
+        "shipments": 240,
+        "todayPreArrivalPct": 48.8,
+        "madounPreArrivalPct": 62.9,
+        "todayMedianHours": 27.3,
+        "madounMedianHours": 16,
+        "todayP90Hours": 48.3,
+        "madounP90Hours": 31.1,
+        "medianReductionPct": 41.4,
+        "repeatChecksAvoided": 294,
+        "todayInactionHours": 4442,
+        "madounInactionHours": 2136.8,
+        "byLane": {
+          "green": {
+            "count": 182,
+            "todayMedian": 25.3,
+            "madounMedian": 16,
+            "madounPreArrivalPct": 66.5
+          },
+          "amber": {
+            "count": 46,
+            "todayMedian": 35.3,
+            "madounMedian": 20,
+            "madounPreArrivalPct": 54.3
+          },
+          "red": {
+            "count": 12,
+            "todayMedian": 44,
+            "madounMedian": 32.5,
+            "madounPreArrivalPct": 41.7
+          }
+        }
+      }
+    },
+    {
+      "scenario": {
+        "leadMult": 0.8,
+        "regulatorQueue": 1,
+        "customsPublished": false
+      },
+      "kpis": {
+        "shipments": 240,
+        "todayPreArrivalPct": 55.8,
+        "madounPreArrivalPct": 72.1,
+        "todayMedianHours": 27.3,
+        "madounMedianHours": 16,
+        "todayP90Hours": 48.3,
+        "madounP90Hours": 31.1,
+        "medianReductionPct": 41.4,
+        "repeatChecksAvoided": 294,
+        "todayInactionHours": 4442,
+        "madounInactionHours": 2136.8,
+        "byLane": {
+          "green": {
+            "count": 182,
+            "todayMedian": 25.3,
+            "madounMedian": 16,
+            "madounPreArrivalPct": 75.3
+          },
+          "amber": {
+            "count": 46,
+            "todayMedian": 35.3,
+            "madounMedian": 20,
+            "madounPreArrivalPct": 63
+          },
+          "red": {
+            "count": 12,
+            "todayMedian": 44,
+            "madounMedian": 32.5,
+            "madounPreArrivalPct": 58.3
+          }
+        }
+      }
+    },
+    {
+      "scenario": {
+        "leadMult": 1,
+        "regulatorQueue": 1,
+        "customsPublished": false
+      },
+      "kpis": {
+        "shipments": 240,
+        "todayPreArrivalPct": 62.5,
+        "madounPreArrivalPct": 77.1,
+        "todayMedianHours": 27.3,
+        "madounMedianHours": 16,
+        "todayP90Hours": 48.3,
+        "madounP90Hours": 31.1,
+        "medianReductionPct": 41.4,
+        "repeatChecksAvoided": 294,
+        "todayInactionHours": 4442,
+        "madounInactionHours": 2136.8,
+        "byLane": {
+          "green": {
+            "count": 182,
+            "todayMedian": 25.3,
+            "madounMedian": 16,
+            "madounPreArrivalPct": 81.3
+          },
+          "amber": {
+            "count": 46,
+            "todayMedian": 35.3,
+            "madounMedian": 20,
+            "madounPreArrivalPct": 65.2
+          },
+          "red": {
+            "count": 12,
+            "todayMedian": 44,
+            "madounMedian": 32.5,
+            "madounPreArrivalPct": 58.3
+          }
+        }
+      }
+    },
+    {
+      "scenario": {
+        "leadMult": 1.2,
+        "regulatorQueue": 1,
+        "customsPublished": false
+      },
+      "kpis": {
+        "shipments": 240,
+        "todayPreArrivalPct": 67.5,
+        "madounPreArrivalPct": 83.3,
+        "todayMedianHours": 27.3,
+        "madounMedianHours": 16,
+        "todayP90Hours": 48.3,
+        "madounP90Hours": 31.1,
+        "medianReductionPct": 41.4,
+        "repeatChecksAvoided": 294,
+        "todayInactionHours": 4442,
+        "madounInactionHours": 2136.8,
+        "byLane": {
+          "green": {
+            "count": 182,
+            "todayMedian": 25.3,
+            "madounMedian": 16,
+            "madounPreArrivalPct": 86.3
+          },
+          "amber": {
+            "count": 46,
+            "todayMedian": 35.3,
+            "madounMedian": 20,
+            "madounPreArrivalPct": 78.3
+          },
+          "red": {
+            "count": 12,
+            "todayMedian": 44,
+            "madounMedian": 32.5,
+            "madounPreArrivalPct": 58.3
+          }
+        }
+      }
+    },
+    {
+      "scenario": {
+        "leadMult": 1.6,
+        "regulatorQueue": 1,
+        "customsPublished": false
+      },
+      "kpis": {
+        "shipments": 240,
+        "todayPreArrivalPct": 78.3,
+        "madounPreArrivalPct": 89.6,
+        "todayMedianHours": 27.3,
+        "madounMedianHours": 16,
+        "todayP90Hours": 48.3,
+        "madounP90Hours": 31.1,
+        "medianReductionPct": 41.4,
+        "repeatChecksAvoided": 294,
+        "todayInactionHours": 4442,
+        "madounInactionHours": 2136.8,
+        "byLane": {
+          "green": {
+            "count": 182,
+            "todayMedian": 25.3,
+            "madounMedian": 16,
+            "madounPreArrivalPct": 91.2
+          },
+          "amber": {
+            "count": 46,
+            "todayMedian": 35.3,
+            "madounMedian": 20,
+            "madounPreArrivalPct": 87
+          },
+          "red": {
+            "count": 12,
+            "todayMedian": 44,
+            "madounMedian": 32.5,
+            "madounPreArrivalPct": 75
+          }
+        }
+      }
+    },
+    {
+      "scenario": {
+        "leadMult": 0.6,
+        "regulatorQueue": 2,
+        "customsPublished": false
+      },
+      "kpis": {
+        "shipments": 240,
+        "todayPreArrivalPct": 43.8,
+        "madounPreArrivalPct": 59.6,
+        "todayMedianHours": 33.2,
+        "madounMedianHours": 24,
+        "todayP90Hours": 58.4,
+        "madounP90Hours": 36.5,
+        "medianReductionPct": 27.6,
+        "repeatChecksAvoided": 301,
+        "todayInactionHours": 6319,
+        "madounInactionHours": 3242.2,
+        "byLane": {
+          "green": {
+            "count": 182,
+            "todayMedian": 30,
+            "madounMedian": 21.5,
+            "madounPreArrivalPct": 61.5
+          },
+          "amber": {
+            "count": 46,
+            "todayMedian": 37.9,
+            "madounMedian": 26.5,
+            "madounPreArrivalPct": 52.2
+          },
+          "red": {
+            "count": 12,
+            "todayMedian": 43,
+            "madounMedian": 33,
+            "madounPreArrivalPct": 58.3
+          }
+        }
+      }
+    },
+    {
+      "scenario": {
+        "leadMult": 0.8,
+        "regulatorQueue": 2,
+        "customsPublished": false
+      },
+      "kpis": {
+        "shipments": 240,
+        "todayPreArrivalPct": 54.2,
+        "madounPreArrivalPct": 67.9,
+        "todayMedianHours": 33.2,
+        "madounMedianHours": 24,
+        "todayP90Hours": 58.4,
+        "madounP90Hours": 36.5,
+        "medianReductionPct": 27.6,
+        "repeatChecksAvoided": 301,
+        "todayInactionHours": 6319,
+        "madounInactionHours": 3242.2,
+        "byLane": {
+          "green": {
+            "count": 182,
+            "todayMedian": 30,
+            "madounMedian": 21.5,
+            "madounPreArrivalPct": 70.9
+          },
+          "amber": {
+            "count": 46,
+            "todayMedian": 37.9,
+            "madounMedian": 26.5,
+            "madounPreArrivalPct": 56.5
+          },
+          "red": {
+            "count": 12,
+            "todayMedian": 43,
+            "madounMedian": 33,
+            "madounPreArrivalPct": 66.7
+          }
+        }
+      }
+    },
+    {
+      "scenario": {
+        "leadMult": 1,
+        "regulatorQueue": 2,
+        "customsPublished": false
+      },
+      "kpis": {
+        "shipments": 240,
+        "todayPreArrivalPct": 60.8,
+        "madounPreArrivalPct": 72.9,
+        "todayMedianHours": 33.2,
+        "madounMedianHours": 24,
+        "todayP90Hours": 58.4,
+        "madounP90Hours": 36.5,
+        "medianReductionPct": 27.6,
+        "repeatChecksAvoided": 301,
+        "todayInactionHours": 6319,
+        "madounInactionHours": 3242.2,
+        "byLane": {
+          "green": {
+            "count": 182,
+            "todayMedian": 30,
+            "madounMedian": 21.5,
+            "madounPreArrivalPct": 75.8
+          },
+          "amber": {
+            "count": 46,
+            "todayMedian": 37.9,
+            "madounMedian": 26.5,
+            "madounPreArrivalPct": 63
+          },
+          "red": {
+            "count": 12,
+            "todayMedian": 43,
+            "madounMedian": 33,
+            "madounPreArrivalPct": 66.7
+          }
+        }
+      }
+    },
+    {
+      "scenario": {
+        "leadMult": 1.2,
+        "regulatorQueue": 2,
+        "customsPublished": false
+      },
+      "kpis": {
+        "shipments": 240,
+        "todayPreArrivalPct": 65.8,
+        "madounPreArrivalPct": 77.1,
+        "todayMedianHours": 33.2,
+        "madounMedianHours": 24,
+        "todayP90Hours": 58.4,
+        "madounP90Hours": 36.5,
+        "medianReductionPct": 27.6,
+        "repeatChecksAvoided": 301,
+        "todayInactionHours": 6319,
+        "madounInactionHours": 3242.2,
+        "byLane": {
+          "green": {
+            "count": 182,
+            "todayMedian": 30,
+            "madounMedian": 21.5,
+            "madounPreArrivalPct": 79.1
+          },
+          "amber": {
+            "count": 46,
+            "todayMedian": 37.9,
+            "madounMedian": 26.5,
+            "madounPreArrivalPct": 71.7
+          },
+          "red": {
+            "count": 12,
+            "todayMedian": 43,
+            "madounMedian": 33,
+            "madounPreArrivalPct": 66.7
+          }
+        }
+      }
+    },
+    {
+      "scenario": {
+        "leadMult": 1.6,
+        "regulatorQueue": 2,
+        "customsPublished": false
+      },
+      "kpis": {
+        "shipments": 240,
+        "todayPreArrivalPct": 72.1,
+        "madounPreArrivalPct": 83.3,
+        "todayMedianHours": 33.2,
+        "madounMedianHours": 24,
+        "todayP90Hours": 58.4,
+        "madounP90Hours": 36.5,
+        "medianReductionPct": 27.6,
+        "repeatChecksAvoided": 301,
+        "todayInactionHours": 6319,
+        "madounInactionHours": 3242.2,
+        "byLane": {
+          "green": {
+            "count": 182,
+            "todayMedian": 30,
+            "madounMedian": 21.5,
+            "madounPreArrivalPct": 85.7
+          },
+          "amber": {
+            "count": 46,
+            "todayMedian": 37.9,
+            "madounMedian": 26.5,
+            "madounPreArrivalPct": 78.3
+          },
+          "red": {
+            "count": 12,
+            "todayMedian": 43,
+            "madounMedian": 33,
+            "madounPreArrivalPct": 66.7
+          }
+        }
+      }
+    },
+    {
+      "scenario": {
+        "leadMult": 0.6,
+        "regulatorQueue": 0.5,
+        "customsPublished": true
+      },
+      "kpis": {
+        "shipments": 240,
+        "todayPreArrivalPct": 77.9,
+        "madounPreArrivalPct": 82.1,
+        "todayMedianHours": 9.4,
+        "madounMedianHours": 8.6,
+        "todayP90Hours": 28.5,
+        "madounP90Hours": 22.3,
+        "medianReductionPct": 8.5,
+        "repeatChecksAvoided": 286,
+        "todayInactionHours": 938.5,
+        "madounInactionHours": 473.5,
+        "byLane": {
+          "green": {
+            "count": 182,
+            "todayMedian": 8,
+            "madounMedian": 7.4,
+            "madounPreArrivalPct": 86.8
+          },
+          "amber": {
+            "count": 46,
+            "todayMedian": 15.9,
+            "madounMedian": 11.6,
+            "madounPreArrivalPct": 69.6
+          },
+          "red": {
+            "count": 12,
+            "todayMedian": 25.3,
+            "madounMedian": 23.1,
+            "madounPreArrivalPct": 58.3
+          }
+        }
+      }
+    },
+    {
+      "scenario": {
+        "leadMult": 0.8,
+        "regulatorQueue": 0.5,
+        "customsPublished": true
+      },
+      "kpis": {
+        "shipments": 240,
+        "todayPreArrivalPct": 82.1,
+        "madounPreArrivalPct": 85.8,
+        "todayMedianHours": 9.4,
+        "madounMedianHours": 8.6,
+        "todayP90Hours": 28.5,
+        "madounP90Hours": 22.3,
+        "medianReductionPct": 8.5,
+        "repeatChecksAvoided": 286,
+        "todayInactionHours": 938.5,
+        "madounInactionHours": 473.5,
+        "byLane": {
+          "green": {
+            "count": 182,
+            "todayMedian": 8,
+            "madounMedian": 7.4,
+            "madounPreArrivalPct": 91.2
+          },
+          "amber": {
+            "count": 46,
+            "todayMedian": 15.9,
+            "madounMedian": 11.6,
+            "madounPreArrivalPct": 71.7
+          },
+          "red": {
+            "count": 12,
+            "todayMedian": 25.3,
+            "madounMedian": 23.1,
+            "madounPreArrivalPct": 58.3
+          }
+        }
+      }
+    },
+    {
+      "scenario": {
+        "leadMult": 1,
+        "regulatorQueue": 0.5,
+        "customsPublished": true
+      },
+      "kpis": {
+        "shipments": 240,
+        "todayPreArrivalPct": 87.1,
+        "madounPreArrivalPct": 90.8,
+        "todayMedianHours": 9.4,
+        "madounMedianHours": 8.6,
+        "todayP90Hours": 28.5,
+        "madounP90Hours": 22.3,
+        "medianReductionPct": 8.5,
+        "repeatChecksAvoided": 286,
+        "todayInactionHours": 938.5,
+        "madounInactionHours": 473.5,
+        "byLane": {
+          "green": {
+            "count": 182,
+            "todayMedian": 8,
+            "madounMedian": 7.4,
+            "madounPreArrivalPct": 94
+          },
+          "amber": {
+            "count": 46,
+            "todayMedian": 15.9,
+            "madounMedian": 11.6,
+            "madounPreArrivalPct": 82.6
+          },
+          "red": {
+            "count": 12,
+            "todayMedian": 25.3,
+            "madounMedian": 23.1,
+            "madounPreArrivalPct": 75
+          }
+        }
+      }
+    },
+    {
+      "scenario": {
+        "leadMult": 1.2,
+        "regulatorQueue": 0.5,
+        "customsPublished": true
+      },
+      "kpis": {
+        "shipments": 240,
+        "todayPreArrivalPct": 89.6,
+        "madounPreArrivalPct": 93.3,
+        "todayMedianHours": 9.4,
+        "madounMedianHours": 8.6,
+        "todayP90Hours": 28.5,
+        "madounP90Hours": 22.3,
+        "medianReductionPct": 8.5,
+        "repeatChecksAvoided": 286,
+        "todayInactionHours": 938.5,
+        "madounInactionHours": 473.5,
+        "byLane": {
+          "green": {
+            "count": 182,
+            "todayMedian": 8,
+            "madounMedian": 7.4,
+            "madounPreArrivalPct": 96.2
+          },
+          "amber": {
+            "count": 46,
+            "todayMedian": 15.9,
+            "madounMedian": 11.6,
+            "madounPreArrivalPct": 84.8
+          },
+          "red": {
+            "count": 12,
+            "todayMedian": 25.3,
+            "madounMedian": 23.1,
+            "madounPreArrivalPct": 83.3
+          }
+        }
+      }
+    },
+    {
+      "scenario": {
+        "leadMult": 1.6,
+        "regulatorQueue": 0.5,
+        "customsPublished": true
+      },
+      "kpis": {
+        "shipments": 240,
+        "todayPreArrivalPct": 95.4,
+        "madounPreArrivalPct": 96.7,
+        "todayMedianHours": 9.4,
+        "madounMedianHours": 8.6,
+        "todayP90Hours": 28.5,
+        "madounP90Hours": 22.3,
+        "medianReductionPct": 8.5,
+        "repeatChecksAvoided": 286,
+        "todayInactionHours": 938.5,
+        "madounInactionHours": 473.5,
+        "byLane": {
+          "green": {
+            "count": 182,
+            "todayMedian": 8,
+            "madounMedian": 7.4,
+            "madounPreArrivalPct": 98.9
+          },
+          "amber": {
+            "count": 46,
+            "todayMedian": 15.9,
+            "madounMedian": 11.6,
+            "madounPreArrivalPct": 91.3
+          },
+          "red": {
+            "count": 12,
+            "todayMedian": 25.3,
+            "madounMedian": 23.1,
+            "madounPreArrivalPct": 83.3
+          }
+        }
+      }
+    },
+    {
+      "scenario": {
+        "leadMult": 0.6,
+        "regulatorQueue": 1,
+        "customsPublished": true
+      },
+      "kpis": {
+        "shipments": 240,
+        "todayPreArrivalPct": 70,
+        "madounPreArrivalPct": 74.2,
+        "todayMedianHours": 13.6,
+        "madounMedianHours": 12.4,
+        "todayP90Hours": 33.9,
+        "madounP90Hours": 23.6,
+        "medianReductionPct": 9.2,
+        "repeatChecksAvoided": 294,
+        "todayInactionHours": 1877,
+        "madounInactionHours": 989,
+        "byLane": {
+          "green": {
+            "count": 182,
+            "todayMedian": 12.5,
+            "madounMedian": 11.6,
+            "madounPreArrivalPct": 78
+          },
+          "amber": {
+            "count": 46,
+            "todayMedian": 22.8,
+            "madounMedian": 15.1,
+            "madounPreArrivalPct": 65.2
+          },
+          "red": {
+            "count": 12,
+            "todayMedian": 29.7,
+            "madounMedian": 28.2,
+            "madounPreArrivalPct": 50
+          }
+        }
+      }
+    },
+    {
+      "scenario": {
+        "leadMult": 0.8,
+        "regulatorQueue": 1,
+        "customsPublished": true
+      },
+      "kpis": {
+        "shipments": 240,
+        "todayPreArrivalPct": 75.8,
+        "madounPreArrivalPct": 81.7,
+        "todayMedianHours": 13.6,
+        "madounMedianHours": 12.4,
+        "todayP90Hours": 33.9,
+        "madounP90Hours": 23.6,
+        "medianReductionPct": 9.2,
+        "repeatChecksAvoided": 294,
+        "todayInactionHours": 1877,
+        "madounInactionHours": 989,
+        "byLane": {
+          "green": {
+            "count": 182,
+            "todayMedian": 12.5,
+            "madounMedian": 11.6,
+            "madounPreArrivalPct": 84.6
+          },
+          "amber": {
+            "count": 46,
+            "todayMedian": 22.8,
+            "madounMedian": 15.1,
+            "madounPreArrivalPct": 76.1
+          },
+          "red": {
+            "count": 12,
+            "todayMedian": 29.7,
+            "madounMedian": 28.2,
+            "madounPreArrivalPct": 58.3
+          }
+        }
+      }
+    },
+    {
+      "scenario": {
+        "leadMult": 1,
+        "regulatorQueue": 1,
+        "customsPublished": true
+      },
+      "kpis": {
+        "shipments": 240,
+        "todayPreArrivalPct": 83.8,
+        "madounPreArrivalPct": 85.8,
+        "todayMedianHours": 13.6,
+        "madounMedianHours": 12.4,
+        "todayP90Hours": 33.9,
+        "madounP90Hours": 23.6,
+        "medianReductionPct": 9.2,
+        "repeatChecksAvoided": 294,
+        "todayInactionHours": 1877,
+        "madounInactionHours": 989,
+        "byLane": {
+          "green": {
+            "count": 182,
+            "todayMedian": 12.5,
+            "madounMedian": 11.6,
+            "madounPreArrivalPct": 88.5
+          },
+          "amber": {
+            "count": 46,
+            "todayMedian": 22.8,
+            "madounMedian": 15.1,
+            "madounPreArrivalPct": 80.4
+          },
+          "red": {
+            "count": 12,
+            "todayMedian": 29.7,
+            "madounMedian": 28.2,
+            "madounPreArrivalPct": 66.7
+          }
+        }
+      }
+    },
+    {
+      "scenario": {
+        "leadMult": 1.2,
+        "regulatorQueue": 1,
+        "customsPublished": true
+      },
+      "kpis": {
+        "shipments": 240,
+        "todayPreArrivalPct": 86.3,
+        "madounPreArrivalPct": 89.2,
+        "todayMedianHours": 13.6,
+        "madounMedianHours": 12.4,
+        "todayP90Hours": 33.9,
+        "madounP90Hours": 23.6,
+        "medianReductionPct": 9.2,
+        "repeatChecksAvoided": 294,
+        "todayInactionHours": 1877,
+        "madounInactionHours": 989,
+        "byLane": {
+          "green": {
+            "count": 182,
+            "todayMedian": 12.5,
+            "madounMedian": 11.6,
+            "madounPreArrivalPct": 91.2
+          },
+          "amber": {
+            "count": 46,
+            "todayMedian": 22.8,
+            "madounMedian": 15.1,
+            "madounPreArrivalPct": 84.8
+          },
+          "red": {
+            "count": 12,
+            "todayMedian": 29.7,
+            "madounMedian": 28.2,
+            "madounPreArrivalPct": 75
+          }
+        }
+      }
+    },
+    {
+      "scenario": {
+        "leadMult": 1.6,
+        "regulatorQueue": 1,
+        "customsPublished": true
+      },
+      "kpis": {
+        "shipments": 240,
+        "todayPreArrivalPct": 91.7,
+        "madounPreArrivalPct": 93.3,
+        "todayMedianHours": 13.6,
+        "madounMedianHours": 12.4,
+        "todayP90Hours": 33.9,
+        "madounP90Hours": 23.6,
+        "medianReductionPct": 9.2,
+        "repeatChecksAvoided": 294,
+        "todayInactionHours": 1877,
+        "madounInactionHours": 989,
+        "byLane": {
+          "green": {
+            "count": 182,
+            "todayMedian": 12.5,
+            "madounMedian": 11.6,
+            "madounPreArrivalPct": 95.1
+          },
+          "amber": {
+            "count": 46,
+            "todayMedian": 22.8,
+            "madounMedian": 15.1,
+            "madounPreArrivalPct": 89.1
+          },
+          "red": {
+            "count": 12,
+            "todayMedian": 29.7,
+            "madounMedian": 28.2,
+            "madounPreArrivalPct": 83.3
+          }
+        }
+      }
+    },
+    {
+      "scenario": {
+        "leadMult": 0.6,
+        "regulatorQueue": 2,
+        "customsPublished": true
+      },
+      "kpis": {
+        "shipments": 240,
+        "todayPreArrivalPct": 67.1,
+        "madounPreArrivalPct": 70.4,
+        "todayMedianHours": 19.5,
+        "madounMedianHours": 18.6,
+        "todayP90Hours": 44.2,
+        "madounP90Hours": 33.1,
+        "medianReductionPct": 4.6,
+        "repeatChecksAvoided": 301,
+        "todayInactionHours": 3754,
+        "madounInactionHours": 2102,
+        "byLane": {
+          "green": {
+            "count": 182,
+            "todayMedian": 18.5,
+            "madounMedian": 17.2,
+            "madounPreArrivalPct": 73.1
+          },
+          "amber": {
+            "count": 46,
+            "todayMedian": 22.6,
+            "madounMedian": 21.5,
+            "madounPreArrivalPct": 60.9
+          },
+          "red": {
+            "count": 12,
+            "todayMedian": 26.9,
+            "madounMedian": 26.8,
+            "madounPreArrivalPct": 66.7
+          }
+        }
+      }
+    },
+    {
+      "scenario": {
+        "leadMult": 0.8,
+        "regulatorQueue": 2,
+        "customsPublished": true
+      },
+      "kpis": {
+        "shipments": 240,
+        "todayPreArrivalPct": 71.7,
+        "madounPreArrivalPct": 74.6,
+        "todayMedianHours": 19.5,
+        "madounMedianHours": 18.6,
+        "todayP90Hours": 44.2,
+        "madounP90Hours": 33.1,
+        "medianReductionPct": 4.6,
+        "repeatChecksAvoided": 301,
+        "todayInactionHours": 3754,
+        "madounInactionHours": 2102,
+        "byLane": {
+          "green": {
+            "count": 182,
+            "todayMedian": 18.5,
+            "madounMedian": 17.2,
+            "madounPreArrivalPct": 76.9
+          },
+          "amber": {
+            "count": 46,
+            "todayMedian": 22.6,
+            "madounMedian": 21.5,
+            "madounPreArrivalPct": 67.4
+          },
+          "red": {
+            "count": 12,
+            "todayMedian": 26.9,
+            "madounMedian": 26.8,
+            "madounPreArrivalPct": 66.7
+          }
+        }
+      }
+    },
+    {
+      "scenario": {
+        "leadMult": 1,
+        "regulatorQueue": 2,
+        "customsPublished": true
+      },
+      "kpis": {
+        "shipments": 240,
+        "todayPreArrivalPct": 75,
+        "madounPreArrivalPct": 78.3,
+        "todayMedianHours": 19.5,
+        "madounMedianHours": 18.6,
+        "todayP90Hours": 44.2,
+        "madounP90Hours": 33.1,
+        "medianReductionPct": 4.6,
+        "repeatChecksAvoided": 301,
+        "todayInactionHours": 3754,
+        "madounInactionHours": 2102,
+        "byLane": {
+          "green": {
+            "count": 182,
+            "todayMedian": 18.5,
+            "madounMedian": 17.2,
+            "madounPreArrivalPct": 79.7
+          },
+          "amber": {
+            "count": 46,
+            "todayMedian": 22.6,
+            "madounMedian": 21.5,
+            "madounPreArrivalPct": 73.9
+          },
+          "red": {
+            "count": 12,
+            "todayMedian": 26.9,
+            "madounMedian": 26.8,
+            "madounPreArrivalPct": 75
+          }
+        }
+      }
+    },
+    {
+      "scenario": {
+        "leadMult": 1.2,
+        "regulatorQueue": 2,
+        "customsPublished": true
+      },
+      "kpis": {
+        "shipments": 240,
+        "todayPreArrivalPct": 77.5,
+        "madounPreArrivalPct": 80.4,
+        "todayMedianHours": 19.5,
+        "madounMedianHours": 18.6,
+        "todayP90Hours": 44.2,
+        "madounP90Hours": 33.1,
+        "medianReductionPct": 4.6,
+        "repeatChecksAvoided": 301,
+        "todayInactionHours": 3754,
+        "madounInactionHours": 2102,
+        "byLane": {
+          "green": {
+            "count": 182,
+            "todayMedian": 18.5,
+            "madounMedian": 17.2,
+            "madounPreArrivalPct": 81.9
+          },
+          "amber": {
+            "count": 46,
+            "todayMedian": 22.6,
+            "madounMedian": 21.5,
+            "madounPreArrivalPct": 76.1
+          },
+          "red": {
+            "count": 12,
+            "todayMedian": 26.9,
+            "madounMedian": 26.8,
+            "madounPreArrivalPct": 75
+          }
+        }
+      }
+    },
+    {
+      "scenario": {
+        "leadMult": 1.6,
+        "regulatorQueue": 2,
+        "customsPublished": true
+      },
+      "kpis": {
+        "shipments": 240,
+        "todayPreArrivalPct": 85,
+        "madounPreArrivalPct": 88.8,
+        "todayMedianHours": 19.5,
+        "madounMedianHours": 18.6,
+        "todayP90Hours": 44.2,
+        "madounP90Hours": 33.1,
+        "medianReductionPct": 4.6,
+        "repeatChecksAvoided": 301,
+        "todayInactionHours": 3754,
+        "madounInactionHours": 2102,
+        "byLane": {
+          "green": {
+            "count": 182,
+            "todayMedian": 18.5,
+            "madounMedian": 17.2,
+            "madounPreArrivalPct": 90.7
+          },
+          "amber": {
+            "count": 46,
+            "todayMedian": 22.6,
+            "madounMedian": 21.5,
+            "madounPreArrivalPct": 84.8
+          },
+          "red": {
+            "count": 12,
+            "todayMedian": 26.9,
+            "madounMedian": 26.8,
+            "madounPreArrivalPct": 75
+          }
+        }
+      }
+    }
+  ]
+}

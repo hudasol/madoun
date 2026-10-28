@@ -1,0 +1,160 @@
+/**
+ * Holds the synthetic model against the published reference points and sweeps the assumptions that
+ * those points cannot pin down. Writes docs/baselines.md and docs/data/sensitivity.json.
+ *
+ *   node scripts/fetch-baselines.mjs   (optional: refreshes the World Bank series)
+ *   npm run baselines
+ *
+ * Nothing here changes the simulator. It builds modified copies of the inputs and runs the same code.
+ */
+import fs from 'node:fs';
+import path from 'node:path';
+import { generate } from '@/data/generate';
+import { REFERENCE_POINTS, NOT_PUBLISHED, byId } from '@/data/baselines';
+import { REQUIREMENTS } from '@/data/authorities';
+import { addHours, computeKpis, makeDirectory, simulate, ms } from '@/engine';
+
+const root = path.resolve(import.meta.dirname, '..');
+const g = generate();
+const PUBLISHED_PRE = byId('adc-prearrival-share-h1-2024')!.value;
+const PUBLISHED_CUSTOMS_MIN = byId('adc-clearance-time-h1-2024')!.value;
+
+export interface Scenario {
+  leadMult: number;
+  /** Multiplier on queue waits of the regulators (not customs, not the terminal). */
+  regulatorQueue: number;
+  /** Customs steps at the published speed: reviews scaled so the document check takes 13.86 minutes, no customs queue. */
+  customsPublished: boolean;
+}
+
+function run(s: Scenario) {
+  const docs = REQUIREMENTS.find((r) => r.id === 'cus-docs')!;
+  const customsScale = s.customsPublished ? PUBLISHED_CUSTOMS_MIN / 60 / docs.reviewHours : 1;
+  const authorities = Object.values(g.directory.authorities).map((a) => ({
+    ...a,
+    queueWaitHours: a.role === 'regulator' ? a.queueWaitHours * s.regulatorQueue : a.role === 'customs' && s.customsPublished ? 0 : a.queueWaitHours,
+  }));
+  const requirements = g.directory.requirements.map((r) =>
+    r.authorityId === 'adc' && s.customsPublished ? { ...r, reviewHours: r.reviewHours * customsScale, acceptHours: r.acceptHours * customsScale, duplicateCheckHours: r.duplicateCheckHours * customsScale } : r,
+  );
+  const directory = makeDirectory({ authorities, requirements, traders: Object.values(g.directory.traders), forwarders: Object.values(g.directory.forwarders) });
+  const shipments = g.shipments.map((sh) => ({ ...sh, eta: addHours(sh.filedAt, ((ms(sh.eta) - ms(sh.filedAt)) / 3_600_000) * s.leadMult) }));
+  const sim = simulate({ seed: g.seed, directory, shipments, truth: g.truth });
+  return computeKpis(sim.results);
+}
+
+const baseline: Scenario = { leadMult: 1, regulatorQueue: 1, customsPublished: false };
+const base = run(baseline);
+
+/** Bisection on the lead time multiplier so that today's pre-arrival share matches the published share. */
+function calibrateLead(s: Omit<Scenario, 'leadMult'>): { leadMult: number; kpis: ReturnType<typeof run> } {
+  let lo = 0.2;
+  let hi = 4;
+  for (let i = 0; i < 40; i++) {
+    const mid = (lo + hi) / 2;
+    const pre = run({ ...s, leadMult: mid }).todayPreArrivalPct;
+    if (pre < PUBLISHED_PRE) lo = mid;
+    else hi = mid;
+  }
+  const leadMult = (lo + hi) / 2;
+  return { leadMult, kpis: run({ ...s, leadMult }) };
+}
+
+const calibrated = calibrateLead({ regulatorQueue: 1, customsPublished: false });
+const calibratedPub = calibrateLead({ regulatorQueue: 1, customsPublished: true });
+
+const grid: { scenario: Scenario; kpis: ReturnType<typeof run> }[] = [];
+for (const customsPublished of [false, true]) {
+  for (const regulatorQueue of [0.5, 1, 2]) {
+    for (const leadMult of [0.6, 0.8, 1, 1.2, 1.6]) {
+      const scenario = { leadMult, regulatorQueue, customsPublished };
+      grid.push({ scenario, kpis: run(scenario) });
+    }
+  }
+}
+
+const lpi = JSON.parse(fs.readFileSync(path.join(root, 'docs', 'data', 'worldbank-lpi.json'), 'utf8'));
+fs.writeFileSync(
+  path.join(root, 'docs', 'data', 'sensitivity.json'),
+  JSON.stringify({ publishedPreArrivalPct: PUBLISHED_PRE, baseline: { scenario: baseline, kpis: base }, calibrated, calibratedWithPublishedCustomsSpeed: calibratedPub, grid }, null, 2) + '\n',
+);
+
+const f1 = (x: number) => x.toFixed(1);
+const k = (x: ReturnType<typeof run>) => `${f1(x.todayPreArrivalPct)}% | ${f1(x.madounPreArrivalPct)}% | ${f1(x.todayMedianHours)} h | ${f1(x.madounMedianHours)} h | ${f1(x.medianReductionPct)}%`;
+const years = ['2007', '2010', '2012', '2014', '2016', '2018', '2022'];
+const lpiRow = (code: string, key: 'customs' | 'overall') => `| ${lpi.countries[code]} | ${years.map((y) => lpi.series[key][code]?.[y] ?? '').join(' | ')} |`;
+const lpiHead = `| Country | ${years.map((y) => (y === '2022' ? '2023 ed.' : y)).join(' | ')} |\n|---|${years.map(() => '---').join('|')}|`;
+const peers = ['ARE', 'SAU', 'OMN', 'QAT', 'SGP', 'NLD', 'DEU'].filter((c) => lpi.series.customs[c]);
+
+const range = (pick: (x: ReturnType<typeof run>) => number) => {
+  const v = grid.map((r) => pick(r.kpis));
+  return `${f1(Math.min(...v))} to ${f1(Math.max(...v))}`;
+};
+
+const md = `# Baselines: published reference points and how far the model's claims depend on its assumptions
+
+Generated by \`npm run baselines\` from [src/data/baselines.ts](../src/data/baselines.ts) and [docs/data/](data). Do not edit by hand.
+
+Madoun's simulator runs on synthetic data, so its headline result (median release and the share cleared before arrival, today against with Madoun) is calibrated to nothing by itself. This page does two things. It lists the real figures we could find and says what each one does and does not measure. And it re-runs the simulator while changing the assumptions those figures cannot settle, so that a reader can see how much of the headline survives.
+
+## Published reference points
+| Figure | Value | Period | Source | Measures | Does not measure |
+|---|---|---|---|---|---|
+${REFERENCE_POINTS.map((r) => `| ${r.label} | ${r.value} ${r.unit} | ${r.period} | [${r.source.publisher}](${r.source.url}), read ${r.source.retrievedOn} | ${r.measures} | ${r.doesNotMeasure} |`).join('\n')}
+
+### Logistics Performance Index, United Arab Emirates and peers (World Bank, read ${lpi.retrievedOn})
+Efficiency of customs clearance, 1 low to 5 high. The UAE has scored between 3.4 and 3.8 since 2007 and 3.7 in the 2023 edition.
+
+${lpiHead}
+${peers.map((c) => lpiRow(c, 'customs')).join('\n')}
+
+Overall LPI score for the same countries:
+
+${lpiHead}
+${peers.map((c) => lpiRow(c, 'overall')).join('\n')}
+
+### What we looked for and did not find
+${NOT_PUBLISHED.map((x) => `- ${x}`).join('\n')}
+
+## Where the model stands against the published figures
+| Quantity | Published | Model (synthetic week, default assumptions) | Comment |
+|---|---|---|---|
+| Pre-arrival share, today | ${PUBLISHED_PRE}% of customs clearance transactions (H1 2024) | ${f1(base.todayPreArrivalPct)}% of shipments | Different units: the model needs every blocking approval from every authority in before arrival, the published figure counts customs transactions. The model sits ${f1(PUBLISHED_PRE - base.todayPreArrivalPct)} points below. |
+| Pre-arrival share, with Madoun | not applicable | ${f1(base.madounPreArrivalPct)}% | A modelled result, not a measurement. |
+| Customs transaction time | ${PUBLISHED_CUSTOMS_MIN} minutes on average | The document check is assumed to take 90 minutes of review plus a 3 hour queue, or 15 minutes when a receipt is accepted | The model is far slower than the published average for customs. Customs speed is therefore tested below. |
+| Median release time, today | not published | ${f1(base.todayMedianHours)} h | No public median release time for Abu Dhabi was found, so the headline hours cannot be checked. |
+| Release time reduction | not published | ${f1(base.medianReductionPct)}% | Depends on the review and queue times of the other authorities, which are not published either. |
+
+## Sensitivity: how much of the headline survives
+Three assumptions are varied one grid at a time: how long before arrival shipments are filed (lead time), how long the regulators' queues are, and whether customs steps run at the published ${PUBLISHED_CUSTOMS_MIN} minute speed. Each row re-runs the whole simulation on the same 240 shipments.
+
+### Calibrating the lead time to the published pre-arrival share
+Filing lead time is not published, so it is the free parameter. Scaling every lead time until the model's "today" share equals ${PUBLISHED_PRE}%:
+
+| Customs assumption | Lead time multiplier needed | Pre arrival today | Pre arrival with Madoun | Median today | Median with Madoun | Median reduction |
+|---|---|---|---|---|---|---|
+| As assumed (90 minute review, 3 hour queue) | ${calibrated.leadMult.toFixed(2)} | ${k(calibrated.kpis)} |
+| Published speed (13.86 minute document check, no queue) | ${calibratedPub.leadMult.toFixed(2)} | ${k(calibratedPub.kpis)} |
+
+Matching one published number does not validate the others. Many different combinations of lead time and queue length give the same ${PUBLISHED_PRE}%.
+
+### Grid
+| Customs | Regulator queue x | Lead time x | Pre arrival today | With Madoun | Median today | With Madoun | Median reduction |
+|---|---|---|---|---|---|---|---|
+${grid.map((r) => `| ${r.scenario.customsPublished ? 'published speed' : 'as assumed'} | ${r.scenario.regulatorQueue} | ${r.scenario.leadMult} | ${k(r.kpis)} |`).join('\n')}
+
+Across the grid, the share cleared before arrival today ranges over ${range((x) => x.todayPreArrivalPct)} percent and with Madoun over ${range((x) => x.madounPreArrivalPct)} percent. The reduction in median release time ranges over ${range((x) => x.medianReductionPct)} percent.
+
+## What this supports and what it does not
+- **Direction.** ${grid.every((r) => r.kpis.medianReductionPct > 0 && r.kpis.madounPreArrivalPct >= r.kpis.todayPreArrivalPct) ? 'In every cell of the grid Madoun releases earlier and clears at least as many shipments before arrival.' : 'In some cells of the grid Madoun does not release earlier or clear more shipments before arrival; read the grid.'} That is a property of the design (independent reviews run side by side, trusted receipts are accepted).
+- **Size depends on one assumption above all: how slow customs is.** With the model's own customs assumptions (90 minute review, 3 hour queue) the median release falls ${f1(calibrated.kpis.medianReductionPct)}%. With customs at the published ${PUBLISHED_CUSTOMS_MIN} minute speed and the lead time calibrated to the published ${PUBLISHED_PRE}% pre-arrival share, it falls ${f1(calibratedPub.kpis.medianReductionPct)}% (from ${f1(calibratedPub.kpis.todayMedianHours)} h to ${f1(calibratedPub.kpis.madounMedianHours)} h) and the pre-arrival share rises from ${f1(calibratedPub.kpis.todayPreArrivalPct)}% to ${f1(calibratedPub.kpis.madounPreArrivalPct)}%. The larger figure should not be quoted as an expected Abu Dhabi saving, and the smaller one is not a forecast either: both are outputs of stated assumptions.
+- **Where the remaining time sits.** Once customs is fast, what is left is the other authorities' review and queue times. No public figure exists for them, so the next real number to obtain is theirs, from the pilot.
+- **What time does not capture.** Repeat checks avoided, one owner per delay, the audit trail and the evidence ledger do not depend on these timings. The model only prices the time.
+- **How to replace assumptions with measurements.** The pilot in [pilot-plan.md](pilot-plan.md) measures release time the WCO way, from arrival to physical release, on real shipments, with the other authorities' times recorded step by step.
+`;
+fs.writeFileSync(path.join(root, 'docs', 'baselines.md'), md);
+console.log('wrote docs/baselines.md');
+console.log('baseline', k(base));
+console.log('calibrated lead', calibrated.leadMult.toFixed(2), k(calibrated.kpis));
+console.log('calibrated lead, customs published', calibratedPub.leadMult.toFixed(2), k(calibratedPub.kpis));
+console.log('grid reduction range', range((x) => x.medianReductionPct), 'pre today', range((x) => x.todayPreArrivalPct), 'pre madoun', range((x) => x.madounPreArrivalPct));
