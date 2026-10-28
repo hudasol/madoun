@@ -3,33 +3,36 @@ import {
   type InspectionResult, type InspectionTask, type MadounEvent, type ShipmentFile, type World,
 } from '@/engine';
 import { getWorld } from './world';
+import { MemoryEventStore, openStore, type EventStore } from './store';
 
 /**
- * MOCK INSPECTION GATEWAY STORE. IN MEMORY AND NOT PERSISTENT.
+ * Inspection gateway events. Results posted by a gateway (a robot, drone or scanner adapter) are appended
+ * to an event store and layered over the read-only synthetic world for the inspection task and ledger
+ * routes. The other API routes keep serving the unmodified synthetic snapshot.
  *
- * Results posted by an inspection gateway (a robot, drone or scanner adapter) are appended as events to
- * a list held in this server process only. They are layered over the read-only synthetic world for the
- * inspection task routes, are lost on restart, and are not shared between server instances. The other
- * API routes keep serving the unmodified synthetic snapshot. A real deployment needs a durable,
- * replicated event store and authenticated device identities (docs/threat-model.md).
+ * The store is chosen by MADOUN_STORE (src/server/store). By default it is memory: lost on restart and
+ * not shared between instances. `file:<path>` or `sqlite:<path>` keep the events across restarts for one
+ * server process or machine. A deployment with several machines needs a networked store, which this
+ * repository does not provide (docs/limitations.md).
  */
-interface GatewayStore { events: MadounEvent[] }
 const KEY = Symbol.for('madoun.api.inspection-gateway');
-type Holder = { [KEY]?: GatewayStore };
+type Holder = { [KEY]?: EventStore };
 
-function store(): GatewayStore {
+export function eventStore(): EventStore {
   const h = globalThis as unknown as Holder;
-  return (h[KEY] ??= { events: [] });
+  return (h[KEY] ??= openStore());
 }
 
-/** Clears the in-memory store. Used by tests. */
-export function resetGatewayStore(): void {
-  store().events = [];
+/** Replaces the store with an empty in-memory one, closing the old one. Used by tests. */
+export function resetGatewayStore(next: EventStore = new MemoryEventStore()): void {
+  const h = globalThis as unknown as Holder;
+  h[KEY]?.close();
+  h[KEY] = next;
 }
 
 /** The synthetic world at the snapshot time with every accepted gateway event applied. */
 export function gatewayWorld(): World {
-  return replay(store().events, getWorld().world);
+  return replay(eventStore().read().map((r) => r.event), getWorld().world);
 }
 
 const laneOf = (f: ShipmentFile) => f.override?.lane ?? f.assessment?.lane;
@@ -60,6 +63,8 @@ export type SubmitOutcome =
   | { ok: true; result: InspectionResult; awaitingOfficerConfirmation: boolean; world: World }
   | { ok: false; problems: string[] };
 
+const CONFLICT = 'Another result was recorded at the same time. Read the task again and retry.';
+
 /**
  * Records a validated result for an open task: the task (if it was only derived), the result and its
  * evidence receipt. A serious machine finding produces a pending receipt that waits for an officer.
@@ -67,6 +72,8 @@ export type SubmitOutcome =
  * Every event passes validateEvent first; nothing is stored unless all of them pass.
  */
 export function submitResult(task: InspectionTask, result: InspectionResult): SubmitOutcome {
+  const store = eventStore();
+  const version = store.version();
   let w = gatewayWorld();
   const f = w.shipments[task.shipmentId];
   const events: MadounEvent[] = [];
@@ -78,6 +85,7 @@ export function submitResult(task: InspectionTask, result: InspectionResult): Su
     if (problems.length) return { ok: false, problems };
     w = replay([e], w);
   }
-  store().events.push(...events);
+  const stored = store.append(events, { expectedVersion: version, idempotencyKey: `result:${task.id}` });
+  if (!stored.ok) return { ok: false, problems: [CONFLICT] };
   return { ok: true, result, awaitingOfficerConfirmation: requiresOfficerConfirmation(result), world: w };
 }
