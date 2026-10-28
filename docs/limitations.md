@@ -18,6 +18,8 @@ What Madoun is not yet, stated before anyone has to ask. Each row says what is m
 | Limit | Why it matters | What closes it |
 |---|---|---|
 | Authentication is a bearer key check. There is no mutual TLS, no identity provider, no key rotation tooling, and keys are not limited to one trader's shipments. | A leaked key works until its entry is removed. | Service identity and rotation at the gateway, as described in [integration.md](integration.md). |
+| Shipment detail shows every key with `shipments:read` the shipment's reviews and audit trail, because participants share one shipment file by design. Only evidence checks and exceptions are narrowed to what an authority may see. | An authority key learns of other authorities' review activity on a shipment. | Per trader and per authority scoping of shipment files. |
+| Keys have no expiry and are revoked only by removing their entry. A gateway key may report only under its own id, which does not prove the device. | A leaked key works until removed. | Rotation, expiry and device attestation. |
 | The public demo runs with authentication off (`MADOUN_AUTH` unset). `/api/v1/health` says so. | Safe only because the data is synthetic. | Set `MADOUN_AUTH=keys` for anything else. |
 | Signing keys are public demo keys unless a development key file is configured, and a key file is not key custody. | A valid signature shows the mechanism works, not who signed. | A hardware security module or key management service ([key-custody.md](key-custody.md)). |
 | Receipt status, summary text and revocation reason are not covered by hashes, signatures or proofs. | Someone with write access could change a status without breaking the chain. | Hash those fields in a new receipt version. |
@@ -34,6 +36,8 @@ What Madoun is not yet, stated before anyone has to ask. Each row says what is m
 | The event store (`MADOUN_STORE`) is memory by default. The file and SQLite adapters are for one machine. | A deployment of several machines would diverge. | A networked store with the same interface ([src/server/store](../src/server/store)). |
 | The shipments, receipts and ledger served by the API are the generated snapshot. Only gateway results are stored. | There is no system of record. | An adapter that feeds real events in. |
 | The declaration import maps a flat file to the assessment format. It is not a WCO or ATLP message and does not map a filer's own identifier to a trader id ([import.md](import.md)). | A real adapter is still needed. | Interface specifications for ATLP and MAMAR, which we have not seen. |
+| The Dockerfile runs with a read only root, so a file or SQLite store needs a mounted volume, which is not yet documented or tested. | The store cannot write otherwise. | Document and test the volume in CI. |
+| Every ledger read replays the event log once per change; the file store keeps all rows in memory. | Cost grows with the log. | Snapshots or an indexed store. |
 | Metrics and the request log are per process. | Several instances need a scraper and a log shipper. | Deployment configuration. |
 
 ## Operations and delivery

@@ -115,7 +115,7 @@ Every response carries `X-Madoun-Synthetic: true` and `Cache-Control: no-store`.
 
 | Setting | Meaning |
 |---|---|
-| `MADOUN_AUTH` | `off` (default) or `keys` |
+| `MADOUN_AUTH` | `off` (default) or `keys`. Any other value is treated as `keys` and every request is refused with 503, so a typo cannot open the API |
 | `MADOUN_API_KEYS` or `MADOUN_API_KEYS_FILE` | JSON array of key entries (id, sha256, role, optional authority and scopes); see `scripts/new-api-key.mjs` |
 | `MADOUN_STORE` | `memory` (default), `file:<path>` or `sqlite:<path>` |
 | `MADOUN_LOG` | `json` to log one line per request, `off` to silence it; on by default in production |
