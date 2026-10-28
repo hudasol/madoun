@@ -22,7 +22,8 @@
     "test:coverage": "vitest run --coverage",
     "check": "npm run lint && npm run typecheck && npm test",
     "benchmark": "tsx scripts/benchmark.ts",
-    "reference-data": "node scripts/fetch-reference-data.mjs"
+    "reference-data": "node scripts/fetch-reference-data.mjs",
+    "baselines": "tsx scripts/baselines.ts"
   },
   "dependencies": {
     "@fontsource-variable/space-grotesk": "^5.3.0",
