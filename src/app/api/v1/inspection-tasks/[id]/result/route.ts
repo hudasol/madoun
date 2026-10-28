@@ -1,6 +1,6 @@
 import { getWorld } from '@/server/world';
 import { errorResponse, handle, json, notFound, readJsonBody } from '@/server/http';
-import { gatewayWorld, listTasks, submitResult } from '@/server/inspection-gateway';
+import { gatewayWorld, listTasks, storeInfo, submitResult } from '@/server/inspection-gateway';
 import { validateInspectionResultRequest } from '@/server/validate';
 import { inspectionReceiptId } from '@/engine';
 
@@ -10,11 +10,11 @@ const MAX_RESULT_BYTES = 64 * 1024;
 type Ctx = { params: Promise<{ id: string }> };
 
 /**
- * A gateway posts the result of an open inspection task. MOCK: stored in memory in this server process
- * only, never persisted, lost on restart. A serious machine finding waits for a customs officer.
+ * A gateway posts the result of an open inspection task. Stored in the configured event store
+ * (memory by default, lost on restart). A serious machine finding waits for a customs officer.
  */
 export async function POST(request: Request, ctx: Ctx) {
-  return handle(request, async () => {
+  return handle(request, async ({ caller }) => {
     const { id } = await ctx.params;
     const now = getWorld().now;
     const world = gatewayWorld();
@@ -29,15 +29,19 @@ export async function POST(request: Request, ctx: Ctx) {
     if (read instanceof Response) return read;
     const v = validateInspectionResultRequest(read.body, { task, now });
     if (!v.ok) return errorResponse(422, 'validation_failed', `Request body has ${v.issues.length} problem(s).`, v.issues);
+    // A gateway key may only report as itself, so one device cannot answer for another.
+    if (caller.role === 'gateway' && v.result.performedBy !== caller.id) {
+      return errorResponse(422, 'validation_failed', 'The result was rejected.', [{ path: 'performedBy', message: `Must equal the id of the key making the request ('${caller.id}').` }]);
+    }
     const out = submitResult(task, v.result);
+    if (!out.ok && out.conflict) return errorResponse(409, 'conflict', out.problems[0]);
     if (!out.ok) {
       return errorResponse(422, 'validation_failed', 'The result was rejected by the engine.', out.problems.map((message) => ({ path: '$', message })));
     }
     const receipt = out.world.receipts.find((r) => r.id === inspectionReceiptId(task.id));
     return json(
       {
-        persisted: false,
-        storage: 'in-memory mock; lost on restart',
+        ...storeInfo(),
         task,
         result: out.result,
         receipt,

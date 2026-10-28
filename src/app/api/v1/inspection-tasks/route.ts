@@ -1,6 +1,6 @@
 import { getWorld } from '@/server/world';
 import { handle, json, paginate, parseEnum, parsePaging } from '@/server/http';
-import { gatewayWorld, listTasks } from '@/server/inspection-gateway';
+import { gatewayWorld, listTasks, storeInfo } from '@/server/inspection-gateway';
 
 const STATUSES = ['open', 'completed'] as const;
 
@@ -16,6 +16,6 @@ export async function GET(request: Request) {
     const status = parseEnum(sp, 'status', STATUSES);
     if (status instanceof Response) return status;
     const tasks = listTasks(gatewayWorld(), getWorld().now, status ?? 'open');
-    return json({ status: status ?? 'open', persisted: false, ...paginate(tasks, paging) });
+    return json({ status: status ?? 'open', ...storeInfo(), ...paginate(tasks, paging) });
   }, { scope: 'tasks:read' });
 }

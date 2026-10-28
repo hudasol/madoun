@@ -1,4 +1,4 @@
-import { getWorld } from '@/server/world';
+import { gatewayWorld } from '@/server/inspection-gateway';
 import { handle, json } from '@/server/http';
 import { demoAttestLedger, verifyAttestations, type EvidenceReceipt, type SignatureReport } from '@/engine';
 
@@ -8,6 +8,7 @@ const cache = new Map<string, SignatureReport>();
 function signatures(ledger: EvidenceReceipt[]) {
   const head = ledger.length ? ledger[ledger.length - 1].hash : 'empty';
   let rep = cache.get(head);
+  if (!rep && cache.size >= 8) cache.delete(cache.keys().next().value!);
   if (!rep) {
     const { attestations, keys } = demoAttestLedger(ledger);
     rep = verifyAttestations(ledger, attestations, keys);
@@ -18,7 +19,7 @@ function signatures(ledger: EvidenceReceipt[]) {
 
 export async function GET(request: Request) {
   return handle(request, () => {
-    const ledger = getWorld().world.receipts;
+    const ledger = gatewayWorld().receipts;
     const rep = signatures(ledger);
     return json({
       ok: rep.chain.valid,

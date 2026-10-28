@@ -19,7 +19,8 @@ export class FileEventStore implements EventStore {
 
   constructor(readonly file: string) {
     fs.mkdirSync(path.dirname(path.resolve(file)), { recursive: true });
-    this.fd = fs.openSync(file, 'a+');
+    fs.closeSync(fs.openSync(file, 'a')); // create it if missing
+    this.fd = fs.openSync(file, 'r+'); // positioned writes, so a failed write cannot leave the offset wrong
     this.load();
   }
 
@@ -58,8 +59,14 @@ export class FileEventStore implements EventStore {
     const seqs = events.map((_, i) => this.rows.length + i + 1);
     const added: StoredEvent[] = events.map((event, i) => ({ seq: seqs[i], ...(i === 0 && idempotencyKey !== undefined ? { key: idempotencyKey, count: events.length } : {}), event }));
     const data = Buffer.from(added.map((r) => JSON.stringify(r) + '\n').join(''), 'utf8');
-    fs.writeSync(this.fd, data, 0, data.length, this.size);
-    fs.fsyncSync(this.fd);
+    try {
+      fs.writeSync(this.fd, data, 0, data.length, this.size);
+      fs.fsyncSync(this.fd);
+    } catch (e) {
+      // Cut off whatever part of the batch reached the disk, so the log still ends on a complete line.
+      try { fs.ftruncateSync(this.fd, this.size); } catch { /* the next open ignores a torn last line */ }
+      throw e;
+    }
     this.size += data.length;
     this.rows.push(...added);
     if (idempotencyKey !== undefined) this.keys.set(idempotencyKey, seqs);

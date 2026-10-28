@@ -30,6 +30,7 @@ info:
     Errors always use `{error:{code,message,details?}}`.
   license:
     name: MIT
+# Applies when the server runs with MADOUN_AUTH=keys. With authentication off (the public demo) no key is checked.
 security:
   - bearerAuth: []
 servers:
@@ -51,16 +52,22 @@ paths:
       description: Public. Reports the authentication mode and any key configuration problems. The dataset block appears only for a key with `ops:read`, or when authentication is off.
       summary: Service status and configuration
       responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
         '200':
           description: OK
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Health' }
         '503':
-          description: Authentication is on but the key configuration is invalid (`auth_misconfigured`)
+          description: The key configuration is invalid (`auth_misconfigured`). The body is the health report for an anonymous request and the error shape for a request that sent a key.
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Health' }
+              schema:
+                oneOf:
+                  - { $ref: '#/components/schemas/Health' }
+                  - { $ref: '#/components/schemas/ErrorShape' }
   /metrics:
     get:
       tags: [Meta]
@@ -69,6 +76,9 @@ paths:
       summary: Request counters in the Prometheus text format
       description: Per process and in memory; reset on restart and not shared between instances. Routes are reported as templates, never with ids.
       responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
         '200':
           description: Prometheus text exposition
           content:
@@ -96,6 +106,9 @@ paths:
         - { $ref: '#/components/parameters/page' }
         - { $ref: '#/components/parameters/pageSize' }
       responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
         '200':
           description: A page of shipment summaries
           content:
@@ -125,6 +138,9 @@ paths:
           required: true
           schema: { type: string, examples: [SHP-0070] }
       responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
         '200':
           description: The shipment file
           content:
@@ -156,6 +172,9 @@ paths:
         - { $ref: '#/components/parameters/page' }
         - { $ref: '#/components/parameters/pageSize' }
       responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
         '200':
           description: A page of receipts
           content:
@@ -181,6 +200,9 @@ paths:
         public, reproducible demo keys (demoKeys is always true here), so the signatures demonstrate
         the mechanism, not the signer.
       responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
         '200':
           description: Verification result
           content:
@@ -218,6 +240,9 @@ paths:
           required: true
           schema: { type: string }
       responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
         '200':
           description: The receipt
           content:
@@ -242,6 +267,9 @@ paths:
           required: true
           schema: { type: string }
       responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
         '200':
           description: Inclusion proof
           content:
@@ -265,6 +293,9 @@ paths:
           in: query
           schema: { type: integer, minimum: 0 }
       responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
         '200':
           description: Checkpoint and public key
           content:
@@ -302,6 +333,9 @@ paths:
         - { $ref: '#/components/parameters/page' }
         - { $ref: '#/components/parameters/pageSize' }
       responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
         '200':
           description: A page of exceptions
           content:
@@ -323,6 +357,9 @@ paths:
       summary: Simulated release-time KPIs
       description: Output of the engine's `computeKpis` over shipments cleared by the snapshot time. These are simulated, not measured.
       responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
         '200':
           description: KPIs
           content:
@@ -374,6 +411,9 @@ paths:
                     - { hsCode: '30043200', description: Hormonal medicaments, category: pharma, origin: DE, value: 88772, quantity: 710, packages: 21, flags: [controlled, cold-chain] }
                     - { hsCode: '30049000', description: Packaged medicaments, category: pharma, origin: IN, value: 75107, quantity: 389, packages: 10, flags: [cold-chain] }
       responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
         '200':
           description: Assessment (not persisted)
           content:
@@ -420,6 +460,9 @@ paths:
               type: array
               items: { $ref: '#/components/schemas/AssessmentRequest' }
       responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
         '200':
           description: One result per declaration (not persisted)
           content:
@@ -486,6 +529,9 @@ paths:
         - $ref: '#/components/parameters/page'
         - $ref: '#/components/parameters/pageSize'
       responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
         '200':
           description: A page of inspection tasks
           content:
@@ -536,6 +582,9 @@ paths:
               media:
                 - { ref: media/insp-SHP-0027/overview.jpg, sha256: 3f0a1c9e5b7d2468ace013579bdf2468ace013579bdf2468ace013579bdf2468, bytes: 4096 }
       responses:
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
         '201':
           description: Result recorded in the in-memory mock store
           content:
@@ -604,6 +653,11 @@ components:
           schema: { $ref: '#/components/schemas/ErrorShape' }
     Forbidden:
       description: The key lacks the scope this route needs (`forbidden`)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorShape' }
+    RateLimited:
+      description: Too many requests (`rate_limited`). Sends `Retry-After`. Refused (unauthenticated) requests are limited too.
       content:
         application/json:
           schema: { $ref: '#/components/schemas/ErrorShape' }

@@ -244,3 +244,94 @@ describe('key generator', () => {
     expect(() => run('--id', 'no-authority', '--role', 'authority')).toThrow(/authority/);
   });
 });
+
+describe('fixes from the independent review', () => {
+  it('fails closed when MADOUN_AUTH is misspelled', async () => {
+    for (const v of ['Keys', 'KEYS', 'on', 'true']) {
+      vi.stubEnv('MADOUN_AUTH', v);
+      expect((await kpis(withKey('kpis'))).status, v).toBe(401);
+      expect((await kpis(withKey('kpis', KEYS.ops))).status, v).toBe(503);
+      const h = await (await health(withKey('health'))).json();
+      expect(h.status).toBe('degraded');
+    }
+  });
+
+  it('does not buffer a chunked body past the cap', async () => {
+    const chunk = new Uint8Array(64 * 1024).fill(32);
+    let sent = 0;
+    const body = new ReadableStream<Uint8Array>({ pull(c) { sent += chunk.length; c.enqueue(chunk); if (sent > 5_000_000) c.close(); } });
+    const req = new Request(url('assessments'), { method: 'POST', headers: { authorization: `Bearer ${KEYS.operator}`, 'content-type': 'application/json' }, body, duplex: 'half' } as RequestInit);
+    const { POST: assess } = await import('@/app/api/v1/assessments/route');
+    const res = await assess(req);
+    expect(res.status).toBe(413);
+    expect(sent).toBeLessThan(1_000_000); // stopped reading soon after 256 KiB
+  });
+
+  it('limits refused requests too', async () => {
+    const statuses: number[] = [];
+    for (let i = 0; i < 700; i++) statuses.push((await kpis(withKey('kpis', undefined, { 'x-forwarded-for': '198.51.100.7' }))).status);
+    expect(statuses[0]).toBe(401);
+    expect(statuses).toContain(429);
+  });
+
+  it('shows an authority key only its own exceptions and hides unshared receipts in shipment detail', async () => {
+    const { GET: listExceptions } = await import('@/app/api/v1/exceptions/route');
+    const { GET: shipment } = await import('@/app/api/v1/shipments/[id]/route');
+    const ex = await (await listExceptions(withKey('exceptions?pageSize=100', KEYS.auth))).json();
+    for (const e of ex.data) expect(e.authorityId).toBe('adc');
+    const all = await (await listExceptions(withKey('exceptions?pageSize=100', KEYS.auditor))).json();
+    expect(all.page.total).toBeGreaterThan(ex.page.total);
+
+    const other = { id: 'x1', sha256: hashKey('mdn_x'), role: 'authority' as const, authority: 'adc', scopes: ['shipments:read' as const, 'receipts:read' as const] };
+    vi.stubEnv('MADOUN_API_KEYS', JSON.stringify([...config, { ...other, sha256: hashKey('mdn_shipment-reader-key-0000000000000000') }]));
+    const key = 'mdn_shipment-reader-key-0000000000000000';
+    const world = getWorld();
+    const visible = (id: string) => {
+      const r = world.world.receipts.find((x) => x.id === id);
+      return !r || canSeeReceipt({ id: 'x1', role: 'authority', authority: 'adc', scopes: new Set() }, r);
+    };
+    let hidden = 0;
+    for (const s of world.g.shipments.slice(0, 80)) {
+      const d = await (await shipment(withKey(`shipments/${s.id}`, key), { params: Promise.resolve({ id: s.id }) })).json();
+      for (const c of d.evidenceChecks) {
+        if (c.receiptId) expect(visible(c.receiptId), c.receiptId).toBe(true);
+        else if (c.verdict === 'not-shared' && /custodian has not shared/.test(c.reason)) hidden++;
+      }
+    }
+    expect(hidden).toBeGreaterThan(0);
+  });
+
+  it('numbers CSV rows by file line', async () => {
+    const { csvToPayloads } = await import('@/server/import');
+    const header = 'declarationRef,mode,carrier,conveyance,entryPoint,eta,traderId,forwarderId,invoiceRef,incoterm,currency,transportDocRef,hsCode,description,category,origin,value,quantity,packages';
+    const r = csvToPayloads(`${header}\n\nA,sea,"multi\nline",c,e,2026-10-30T00:00:00Z,tr-01,fw-harbour,I,CIF,AED,T,85176200,d,wireless,KR,x,1,1`);
+    expect(r.ok === false && r.issues[0]).toMatchObject({ row: 3, path: 'value' });
+  });
+});
+
+describe('gateway identity and ledger consistency', () => {
+  it('rejects a result reported under another device id and agrees across ledger routes after a result', async () => {
+    const { GET: listTasks } = await import('@/app/api/v1/inspection-tasks/route');
+    const { resetGatewayStore } = await import('@/server/inspection-gateway');
+    const { simulateCell } = await import('../gateway/robot');
+    resetGatewayStore();
+    const task = (await (await listTasks(withKey('inspection-tasks?pageSize=1', KEYS.gateway))).json()).data[0];
+    const send = (performedBy: string) => postResult(
+      new Request(url(`inspection-tasks/${task.id}/result`), { method: 'POST', headers: { authorization: `Bearer ${KEYS.gateway}`, 'content-type': 'application/json' }, body: JSON.stringify({ ...simulateCell(task, 1), performedBy, findings: [{ kind: 'none', severity: 'info', note: 'Nothing found' }] }) }),
+      { params: Promise.resolve({ id: task.id }) },
+    );
+    expect((await send('someone-else')).status).toBe(422);
+    const ok = await send('gw');
+    expect(ok.status).toBe(201);
+    const rid = (await ok.json()).receipt.id as string;
+    const ctx = { params: Promise.resolve({ id: rid }) };
+    expect((await getReceipt(withKey(`receipts/${rid}`, KEYS.auditor), ctx)).status).toBe(200);
+    expect((await getProof(withKey(`receipts/${rid}/proof`, KEYS.auditor), ctx)).status).toBe(200);
+    const { GET: verifyChain } = await import('@/app/api/v1/receipts/verify/route');
+    const { GET: checkpoint } = await import('@/app/api/v1/ledger/checkpoint/route');
+    const v = await (await verifyChain(withKey('receipts/verify', KEYS.auditor))).json();
+    const c = await (await checkpoint(withKey('ledger/checkpoint', KEYS.auditor))).json();
+    expect(v.length).toBe(c.checkpoint.treeSize);
+    resetGatewayStore();
+  });
+});
