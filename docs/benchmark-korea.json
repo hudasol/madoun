@@ -1,0 +1,611 @@
+{
+  "fraud": {
+    "target": "fraud",
+    "baseRate": {
+      "train": 0.21703891935268155,
+      "valid": 0.20949102532579297,
+      "test": 0.2163659945761113
+    },
+    "counts": {
+      "train": 37385,
+      "valid": 8134,
+      "test": 8481,
+      "positivesTest": 1835
+    },
+    "random": {
+      "budgets": [
+        {
+          "budget": 0.05,
+          "inspected": 424,
+          "precision": 0.21918632075471706,
+          "recall": 0.0506457765667575,
+          "lift": 1.0130349789213917
+        },
+        {
+          "budget": 0.1,
+          "inspected": 848,
+          "precision": 0.21727004716981127,
+          "recall": 0.10040599455040873,
+          "lift": 1.0041783487995477
+        },
+        {
+          "budget": 0.2,
+          "inspected": 1696,
+          "precision": 0.2164740566037737,
+          "recall": 0.20007629427792936,
+          "lift": 1.0004994409027814
+        }
+      ]
+    },
+    "methods": [
+      {
+        "id": "M1",
+        "name": "Highest declared value first",
+        "validAuc": 0.4336824797932228,
+        "testAuc": 0.43919392623946224,
+        "aucCi": {
+          "lo": 0.42515471514597103,
+          "hi": 0.45308055817526444
+        },
+        "averagePrecision": 0.182590003116155,
+        "budgets": [
+          {
+            "budget": 0.05,
+            "inspected": 424,
+            "precision": 0.10849056603773585,
+            "recall": 0.025068119891008173,
+            "lift": 0.5014215207444348
+          },
+          {
+            "budget": 0.1,
+            "inspected": 848,
+            "precision": 0.11910377358490566,
+            "recall": 0.055040871934604906,
+            "lift": 0.5504736260346512
+          },
+          {
+            "budget": 0.2,
+            "inspected": 1696,
+            "precision": 0.12971698113207547,
+            "recall": 0.11989100817438691,
+            "lift": 0.5995257313248676
+          }
+        ],
+        "precisionAt10Ci": {
+          "lo": 0.09313089622641509,
+          "hi": 0.1403301886792453
+        }
+      },
+      {
+        "id": "M2",
+        "name": "Trader history",
+        "chosen": "k = 1",
+        "validAuc": 0.5005902770172095,
+        "testAuc": 0.5166972656105863,
+        "aucCi": {
+          "lo": 0.5017866035265052,
+          "hi": 0.5312304045120977
+        },
+        "averagePrecision": 0.20812138244969078,
+        "budgets": [
+          {
+            "budget": 0.05,
+            "inspected": 424,
+            "precision": 0.20754716981132076,
+            "recall": 0.04795640326975477,
+            "lift": 0.9592411701197883
+          },
+          {
+            "budget": 0.1,
+            "inspected": 848,
+            "precision": 0.20400943396226415,
+            "recall": 0.09427792915531336,
+            "lift": 0.9428904683563827
+          },
+          {
+            "budget": 0.2,
+            "inspected": 1696,
+            "precision": 0.21521226415094338,
+            "recall": 0.1989100817438692,
+            "lift": 0.9946676906071666
+          }
+        ],
+        "precisionAt10Ci": {
+          "lo": 0.17688679245283018,
+          "hi": 0.2346698113207547
+        }
+      },
+      {
+        "id": "M3",
+        "name": "Madoun factor model",
+        "chosen": "k = 5",
+        "validAuc": 0.7252662749435963,
+        "testAuc": 0.7164603322069533,
+        "aucCi": {
+          "lo": 0.7035963234440774,
+          "hi": 0.7292423672102348
+        },
+        "averagePrecision": 0.40149435003783673,
+        "budgets": [
+          {
+            "budget": 0.05,
+            "inspected": 424,
+            "precision": 0.5400943396226415,
+            "recall": 0.12479564032697547,
+            "lift": 2.4962071358799034
+          },
+          {
+            "budget": 0.1,
+            "inspected": 848,
+            "precision": 0.4658018867924528,
+            "recall": 0.21525885558583105,
+            "lift": 2.1528423988483882
+          },
+          {
+            "budget": 0.2,
+            "inspected": 1696,
+            "precision": 0.41450471698113206,
+            "recall": 0.38310626702997275,
+            "lift": 1.9157572232790088
+          }
+        ],
+        "precisionAt10Ci": {
+          "lo": 0.4339622641509434,
+          "hi": 0.4988207547169811
+        }
+      },
+      {
+        "id": "M4",
+        "name": "Logistic regression",
+        "chosen": "penalty = 0.001",
+        "validAuc": 0.7018297903022073,
+        "testAuc": 0.6874213331081119,
+        "aucCi": {
+          "lo": 0.6743064284162015,
+          "hi": 0.7006751281080809
+        },
+        "averagePrecision": 0.3764281500608351,
+        "budgets": [
+          {
+            "budget": 0.05,
+            "inspected": 424,
+            "precision": 0.5023584905660378,
+            "recall": 0.11607629427792915,
+            "lift": 2.3217996504035785
+          },
+          {
+            "budget": 0.1,
+            "inspected": 848,
+            "precision": 0.455188679245283,
+            "recall": 0.2103542234332425,
+            "lift": 2.1037902935581716
+          },
+          {
+            "budget": 0.2,
+            "inspected": 1696,
+            "precision": 0.38620283018867924,
+            "recall": 0.3569482288828338,
+            "lift": 1.784951609171765
+          }
+        ],
+        "precisionAt10Ci": {
+          "lo": 0.4221698113207547,
+          "hi": 0.48941627358490564
+        }
+      },
+      {
+        "id": "M5",
+        "name": "Unconstrained reference (LightGBM, all columns)",
+        "validAuc": 0.8287689655298301,
+        "testAuc": 0.8199795660826491,
+        "aucCi": {
+          "lo": 0.8088434372259221,
+          "hi": 0.8311321818992801
+        },
+        "averagePrecision": 0.6215827377133061,
+        "budgets": [
+          {
+            "budget": 0.05,
+            "inspected": 424,
+            "precision": 0.8632075471698113,
+            "recall": 0.1994550408719346,
+            "lift": 3.989571230270937
+          },
+          {
+            "budget": 0.1,
+            "inspected": 848,
+            "precision": 0.7582547169811321,
+            "recall": 0.35040871934604906,
+            "lift": 3.504500411289908
+          },
+          {
+            "budget": 0.2,
+            "inspected": 1696,
+            "precision": 0.5972877358490566,
+            "recall": 0.5520435967302453,
+            "lift": 2.7605434810549587
+          }
+        ],
+        "precisionAt10Ci": {
+          "lo": 0.7240566037735849,
+          "hi": 0.7877653301886792
+        }
+      }
+    ],
+    "paired": [
+      {
+        "a": "M2",
+        "b": "M1",
+        "diff": 0.07750333937112402,
+        "lo": 0.05720330649860491,
+        "hi": 0.09812796973353397
+      },
+      {
+        "a": "M3",
+        "b": "M5",
+        "diff": -0.10351923387569584,
+        "lo": -0.11690376655539081,
+        "hi": -0.09012346360456278
+      },
+      {
+        "a": "M4",
+        "b": "M3",
+        "diff": -0.029038999098841334,
+        "lo": -0.039547829877824806,
+        "hi": -0.018553369525384247
+      }
+    ],
+    "brierSkillM3": {
+      "brier": 0.15230631859993435,
+      "baseline": 0.1695522037949666,
+      "skill": 0.10171430868505305
+    },
+    "permutation": [
+      0.4995716421178132,
+      0.48659011874139535,
+      0.5073412046007473,
+      0.4927078302410497,
+      0.5099420601685388
+    ],
+    "structuralMaxError": 0
+  },
+  "critical": {
+    "target": "critical",
+    "baseRate": {
+      "train": 0.01053898622442156,
+      "valid": 0.009589377919842636,
+      "test": 0.008607475533545572
+    },
+    "counts": {
+      "train": 37385,
+      "valid": 8134,
+      "test": 8481,
+      "positivesTest": 73
+    },
+    "random": {
+      "budgets": [
+        {
+          "budget": 0.05,
+          "inspected": 424,
+          "precision": 0.008596698113207558,
+          "recall": 0.04993150684931504,
+          "lift": 0.9987478999741528
+        },
+        {
+          "budget": 0.1,
+          "inspected": 848,
+          "precision": 0.00860259433962265,
+          "recall": 0.09993150684931525,
+          "lift": 0.9994329122512273
+        },
+        {
+          "budget": 0.2,
+          "inspected": 1696,
+          "precision": 0.008767688679245284,
+          "recall": 0.20369863013698647,
+          "lift": 1.0186132560093046
+        }
+      ]
+    },
+    "methods": [
+      {
+        "id": "M1",
+        "name": "Highest declared value first",
+        "validAuc": 0.5117518715147812,
+        "testAuc": 0.5635867015106292,
+        "aucCi": {
+          "lo": 0.4971849674435013,
+          "hi": 0.625887429329481
+        },
+        "averagePrecision": 0.009833655824632375,
+        "budgets": [
+          {
+            "budget": 0.05,
+            "inspected": 424,
+            "precision": 0.0047169811320754715,
+            "recall": 0.0273972602739726,
+            "lift": 0.5480098216593435
+          },
+          {
+            "budget": 0.1,
+            "inspected": 848,
+            "precision": 0.007075471698113208,
+            "recall": 0.0821917808219178,
+            "lift": 0.8220147324890152
+          },
+          {
+            "budget": 0.2,
+            "inspected": 1696,
+            "precision": 0.01061320754716981,
+            "recall": 0.2465753424657534,
+            "lift": 1.2330220987335228
+          }
+        ],
+        "precisionAt10Ci": {
+          "lo": 0.0023584905660377358,
+          "hi": 0.012971698113207548
+        }
+      },
+      {
+        "id": "M2",
+        "name": "Trader history",
+        "chosen": "k = 1",
+        "validAuc": 0.5066823899371069,
+        "testAuc": 0.5331240306035999,
+        "aucCi": {
+          "lo": 0.46752872282467034,
+          "hi": 0.5972171884374724
+        },
+        "averagePrecision": 0.0080033576269297,
+        "budgets": [
+          {
+            "budget": 0.05,
+            "inspected": 424,
+            "precision": 0.0047169811320754715,
+            "recall": 0.0273972602739726,
+            "lift": 0.5480098216593435
+          },
+          {
+            "budget": 0.1,
+            "inspected": 848,
+            "precision": 0.01061320754716981,
+            "recall": 0.1232876712328767,
+            "lift": 1.2330220987335228
+          },
+          {
+            "budget": 0.2,
+            "inspected": 1696,
+            "precision": 0.01061320754716981,
+            "recall": 0.2465753424657534,
+            "lift": 1.2330220987335228
+          }
+        ],
+        "precisionAt10Ci": {
+          "lo": 0.003537735849056604,
+          "hi": 0.018867924528301886
+        }
+      },
+      {
+        "id": "M3",
+        "name": "Madoun factor model",
+        "chosen": "k = 2",
+        "validAuc": 0.8950400084027195,
+        "testAuc": 0.915982658394484,
+        "aucCi": {
+          "lo": 0.8867848166869071,
+          "hi": 0.943470938141744
+        },
+        "averagePrecision": 0.10894788759577136,
+        "budgets": [
+          {
+            "budget": 0.05,
+            "inspected": 424,
+            "precision": 0.10141509433962265,
+            "recall": 0.589041095890411,
+            "lift": 11.782211165675886
+          },
+          {
+            "budget": 0.1,
+            "inspected": 848,
+            "precision": 0.0625,
+            "recall": 0.726027397260274,
+            "lift": 7.261130136986302
+          },
+          {
+            "budget": 0.2,
+            "inspected": 1696,
+            "precision": 0.03773584905660377,
+            "recall": 0.8767123287671232,
+            "lift": 4.384078573274748
+          }
+        ],
+        "precisionAt10Ci": {
+          "lo": 0.04716981132075472,
+          "hi": 0.08018867924528301
+        }
+      },
+      {
+        "id": "M4",
+        "name": "Logistic regression",
+        "chosen": "penalty = 0.01",
+        "validAuc": 0.8506798563898862,
+        "testAuc": 0.8730978650469872,
+        "aucCi": {
+          "lo": 0.8326072270541791,
+          "hi": 0.9074237127314595
+        },
+        "averagePrecision": 0.10683431777151084,
+        "budgets": [
+          {
+            "budget": 0.05,
+            "inspected": 424,
+            "precision": 0.07547169811320754,
+            "recall": 0.4383561643835616,
+            "lift": 8.768157146549497
+          },
+          {
+            "budget": 0.1,
+            "inspected": 848,
+            "precision": 0.05306603773584906,
+            "recall": 0.6164383561643836,
+            "lift": 6.165110493667615
+          },
+          {
+            "budget": 0.2,
+            "inspected": 1696,
+            "precision": 0.033608490566037735,
+            "recall": 0.7808219178082192,
+            "lift": 3.9045699793228223
+          }
+        ],
+        "precisionAt10Ci": {
+          "lo": 0.037706367924528306,
+          "hi": 0.06721698113207547
+        }
+      },
+      {
+        "id": "M5",
+        "name": "Unconstrained reference (LightGBM, all columns)",
+        "validAuc": 0.8896856619051257,
+        "testAuc": 0.8634706997901542,
+        "aucCi": {
+          "lo": 0.8075429353116549,
+          "hi": 0.9147609038430217
+        },
+        "averagePrecision": 0.45763288105272903,
+        "budgets": [
+          {
+            "budget": 0.05,
+            "inspected": 424,
+            "precision": 0.10849056603773585,
+            "recall": 0.6301369863013698,
+            "lift": 12.604225898164902
+          },
+          {
+            "budget": 0.1,
+            "inspected": 848,
+            "precision": 0.0625,
+            "recall": 0.726027397260274,
+            "lift": 7.261130136986302
+          },
+          {
+            "budget": 0.2,
+            "inspected": 1696,
+            "precision": 0.03419811320754717,
+            "recall": 0.7945205479452054,
+            "lift": 3.9730712070302405
+          }
+        ],
+        "precisionAt10Ci": {
+          "lo": 0.045990566037735846,
+          "hi": 0.07903891509433959
+        }
+      }
+    ],
+    "paired": [
+      {
+        "a": "M2",
+        "b": "M1",
+        "diff": -0.030462670907029255,
+        "lo": -0.12253875863307369,
+        "hi": 0.058929776722976876
+      },
+      {
+        "a": "M3",
+        "b": "M5",
+        "diff": 0.05251195860432978,
+        "lo": 0.010802265658079124,
+        "hi": 0.10009552768005764
+      },
+      {
+        "a": "M4",
+        "b": "M3",
+        "diff": -0.04288479334749684,
+        "lo": -0.07559870287909375,
+        "hi": -0.011589217831036254
+      }
+    ],
+    "brierSkillM3": {
+      "brier": 0.008077922390367046,
+      "baseline": 0.00853711763203407,
+      "skill": 0.053788088844409554
+    },
+    "permutation": [
+      0.5182719002124526,
+      0.4839544530323371,
+      0.5142656048381841,
+      0.5275968418857448,
+      0.5144692595440742
+    ],
+    "structuralMaxError": 0
+  },
+  "predictions": [
+    {
+      "id": "P1",
+      "statement": "Every learned method ranks better than chance on Fraud.",
+      "hit": true,
+      "detail": "M2 lower bound 0.502, M3 lower bound 0.704, M4 lower bound 0.674, M5 lower bound 0.809"
+    },
+    {
+      "id": "P2",
+      "statement": "Declared value alone is a weak ranking.",
+      "hit": true,
+      "detail": "M1 AUC 0.439"
+    },
+    {
+      "id": "P3",
+      "statement": "Trader history beats declared value.",
+      "hit": true,
+      "detail": "difference 0.078, interval 0.057 to 0.098"
+    },
+    {
+      "id": "P4",
+      "statement": "The explainable model costs little against a plain linear model.",
+      "hit": true,
+      "detail": "M4 0.687 minus M3 0.716 = -0.029"
+    },
+    {
+      "id": "P5",
+      "statement": "The explainable model keeps most of the ranking skill of the unconstrained reference.",
+      "hit": false,
+      "detail": "(0.716 - 0.5) / (0.820 - 0.5) = 0.676"
+    },
+    {
+      "id": "P6",
+      "statement": "At a 10 percent inspection budget the explainable model more than doubles the base rate.",
+      "hit": true,
+      "detail": "lift 2.15"
+    },
+    {
+      "id": "P7",
+      "statement": "The later period is harder than the validation period.",
+      "hit": true,
+      "detail": "validation 0.725, test 0.716"
+    },
+    {
+      "id": "P8",
+      "statement": "Rare critical cases are harder to rank than fraud in general.",
+      "hit": false,
+      "detail": "critical 0.916, fraud 0.716"
+    },
+    {
+      "id": "P9",
+      "statement": "Negative control: with training labels shuffled, M3 has no skill.",
+      "hit": true,
+      "detail": "0.500, 0.487, 0.507, 0.493, 0.510"
+    },
+    {
+      "id": "P10",
+      "statement": "The explainable model is useful as a probability, not only as an order.",
+      "hit": true,
+      "detail": "Brier 0.1523 against constant 0.1696, skill 0.1017"
+    },
+    {
+      "id": "P11",
+      "statement": "Structural check: every score equals its base plus its factor contributions.",
+      "hit": true,
+      "structural": true,
+      "detail": "largest difference 0.0e+0"
+    }
+  ]
+}
