@@ -20,7 +20,9 @@
     "offline": "node scripts/offline-check.mjs 3300",
     "lint": "oxlint",
     "test:coverage": "vitest run --coverage",
-    "check": "npm run lint && npm run typecheck && npm test"
+    "check": "npm run lint && npm run typecheck && npm test",
+    "benchmark": "tsx scripts/benchmark.ts",
+    "reference-data": "node scripts/fetch-reference-data.mjs"
   },
   "dependencies": {
     "@fontsource-variable/space-grotesk": "^5.3.0",

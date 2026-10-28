@@ -65,3 +65,10 @@ Written before any model is fitted. HIT only if the stated condition holds; ever
 
 ## Stopping rule
 One run of the full pipeline on the pinned files. If a defect is found afterwards, it is fixed, the whole pipeline is run again, and both the defect and the effect on every number are written as a dated amendment. No prediction is edited after the first run.
+
+## Notes written after the run (no prediction was changed)
+Added on 28 October 2026, after the single run reported in [benchmark-korea.md](benchmark-korea.md).
+- The run found no defect, so no amendment to the method was needed. P5 and P8 missed and are reported as they were written.
+- For the `Fraud` target the unconstrained reference reached the 2,000 boosting round cap with the 15 leaf setting without stopping early. The plan did not set a round cap. A longer run could raise the reference a little, which would lower the share P5 measures, not raise it.
+- P2 says declared value is a weak ranking and hit because its AUC is below 0.60. The AUC is in fact 0.439, below chance, which is a stronger statement than the prediction made.
+- P8 compared AUC. AUC does not depend on how rare the positives are, so the rare critical class can rank well by AUC and still have low precision at a fixed budget. Both are in the report.
