@@ -1,16 +1,25 @@
 openapi: 3.1.0
 info:
   title: Madoun mock integration API
-  version: 1.0.0-mock
+  version: 1.1.0-mock
   summary: Read-mostly mock API showing the adapter seam between ATLP/MAMAR and Madoun.
   description: |
     **This is a mock.** Every response is built from a seeded synthetic dataset generated in-process.
     No real trader, declaration or receipt appears, and nothing is persisted. Every response carries
     `X-Madoun-Synthetic: true` and `Cache-Control: no-store`.
 
-    **Authentication is not implemented.** The server has a placeholder (`src/server/auth.ts`) that
-    allows every request. The intended design (mTLS between systems plus per-client API keys) is
-    described in `docs/integration.md` and is not part of this contract yet.
+    **Authentication.** The server runs in one of two modes, chosen by `MADOUN_AUTH`. In `off` (the default,
+    used by the public demo because it serves synthetic data only) every caller is accepted and `/health`
+    says so. In `keys` every route except `/health` needs `Authorization: Bearer <key>`. Keys are issued
+    with `scripts/new-api-key.mjs` and held on the server only as SHA-256 hashes. Each key has a role
+    (authority, auditor, operator, gateway or ops) and scopes; a route answers 403 when the key lacks its
+    scope (named in `x-required-scope`). Receipts follow their sharing policy: a key for an authority sees
+    only receipts it issued or that were shared with it, and an unseen receipt answers 404. If the key
+    configuration is missing or invalid the server answers 503 `auth_misconfigured` and never falls back to
+    open access. This is a bearer key check, not mutual TLS or an identity provider; see
+    `docs/threat-model.md`.
+
+    Every response carries `X-Request-Id` (a well formed incoming value is echoed) and `X-Madoun-Auth`.
 
     Rate limits: an in-memory token bucket per server instance and client (reads: burst 600, 100 per
     second; writes: burst 120, 20 per second). Over the limit the API answers 429 `rate_limited` with
@@ -21,6 +30,8 @@ info:
     Errors always use `{error:{code,message,details?}}`.
   license:
     name: MIT
+security:
+  - bearerAuth: []
 servers:
   - url: /api/v1
     description: Same origin as the running app
@@ -36,17 +47,38 @@ paths:
     get:
       tags: [Meta]
       operationId: getHealth
-      summary: Service status and dataset facts
+      security: [{}, { bearerAuth: [] }]
+      description: Public. Reports the authentication mode and any key configuration problems. The dataset block appears only for a key with `ops:read`, or when authentication is off.
+      summary: Service status and configuration
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Health' }
+        '503':
+          description: Authentication is on but the key configuration is invalid (`auth_misconfigured`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Health' }
+  /metrics:
+    get:
+      tags: [Meta]
+      operationId: getMetrics
+      x-required-scope: ops:read
+      summary: Request counters in the Prometheus text format
+      description: Per process and in memory; reset on restart and not shared between instances. Routes are reported as templates, never with ids.
+      responses:
+        '200':
+          description: Prometheus text exposition
+          content:
+            text/plain:
+              schema: { type: string }
   /shipments:
     get:
       tags: [Shipments]
       operationId: listShipments
+      x-required-scope: shipments:read
       summary: List shipment files (summaries)
       description: Ordered by `filedAt`, then `id`.
       parameters:
@@ -81,6 +113,7 @@ paths:
     get:
       tags: [Shipments]
       operationId: getShipment
+      x-required-scope: shipments:read
       summary: Full shipment file
       description: >
         The declaration as held by Madoun, the requirements it triggers, evidence checks against
@@ -102,6 +135,7 @@ paths:
     get:
       tags: [Evidence]
       operationId: listReceipts
+      x-required-scope: receipts:read
       summary: List evidence receipts
       description: Ledger order (the order the hash chain was written). Receipts hold claims and hashes, never documents.
       parameters:
@@ -139,6 +173,7 @@ paths:
     get:
       tags: [Evidence]
       operationId: verifyReceiptChain
+      x-required-scope: ledger:read
       summary: Verify the receipt hash chain
       description: >-
         Recomputes every receipt hash and its link to the previous one, and verifies each receipt's
@@ -175,6 +210,7 @@ paths:
     get:
       tags: [Evidence]
       operationId: getReceipt
+      x-required-scope: receipts:read
       summary: One evidence receipt
       parameters:
         - name: id
@@ -192,6 +228,7 @@ paths:
     get:
       tags: [Evidence]
       operationId: getReceiptInclusionProof
+      x-required-scope: receipts:read
       summary: RFC 6962 inclusion proof for one receipt against the latest signed checkpoint
       description: |
         Every receipt's chain hash is a leaf of an RFC 6962 Merkle tree (leaf hash SHA-256(0x00 || hash),
@@ -215,6 +252,7 @@ paths:
     get:
       tags: [Evidence]
       operationId: getLedgerCheckpoint
+      x-required-scope: ledger:read
       summary: Latest signed checkpoint of the evidence ledger, with an optional consistency proof
       description: |
         A checkpoint signs, with Ed25519, the line based message
@@ -245,6 +283,7 @@ paths:
     get:
       tags: [Operations]
       operationId: listExceptions
+      x-required-scope: exceptions:read
       summary: Open exceptions at the snapshot time
       description: Ordered by `openedAt`, then `id`.
       parameters:
@@ -280,6 +319,7 @@ paths:
     get:
       tags: [Operations]
       operationId: getKpis
+      x-required-scope: kpis:read
       summary: Simulated release-time KPIs
       description: Output of the engine's `computeKpis` over shipments cleared by the snapshot time. These are simulated, not measured.
       responses:
@@ -298,6 +338,7 @@ paths:
     post:
       tags: [Adapter]
       operationId: createAssessment
+      x-required-scope: assessments:write
       summary: Assess a declaration without persisting it (adapter endpoint)
       description: |
         An ATLP/MAMAR adapter maps a filing to `AssessmentRequest` and posts it. Madoun derives
@@ -362,6 +403,7 @@ paths:
     get:
       tags: [Inspection]
       operationId: listInspectionTasks
+      x-required-scope: tasks:read
       summary: Inspection tasks for a robot, drone or scanner gateway to poll
       description: |
         Open tasks are shipments still in flight whose effective lane is red and that have no inspection
@@ -394,6 +436,7 @@ paths:
     post:
       tags: [Inspection]
       operationId: postInspectionResult
+      x-required-scope: tasks:write
       summary: Post the result of an open inspection task (gateway endpoint)
       description: |
         Records the task, the result and its evidence receipt. Validation is strict: unknown fields are
@@ -466,6 +509,15 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/ValidationError' }
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: An API key issued by scripts/new-api-key.mjs, starting with `mdn_`. Not checked when the server runs with authentication off.
+  headers:
+    RequestId:
+      description: Identifier of this request, for correlating with the server log.
+      schema: { type: string }
   parameters:
     page:
       name: page
@@ -476,6 +528,16 @@ components:
       in: query
       schema: { type: integer, minimum: 1, maximum: 100, default: 25 }
   responses:
+    Unauthorized:
+      description: No key, or an unrecognised key (`unauthorized`). Sends `WWW-Authenticate: Bearer`.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorShape' }
+    Forbidden:
+      description: The key lacks the scope this route needs (`forbidden`)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorShape' }
     NotFound:
       description: No such resource (`not_found`)
       content:
@@ -516,7 +578,7 @@ components:
           properties:
             code:
               type: string
-              description: Machine-readable. One of not_found, invalid_query, invalid_json, unsupported_media_type, payload_too_large, validation_failed, conflict, rate_limited, unauthorized, internal_error.
+              description: Machine-readable. One of not_found, invalid_query, invalid_json, unsupported_media_type, payload_too_large, validation_failed, conflict, rate_limited, unauthorized, forbidden, auth_misconfigured, internal_error.
             message: { type: string }
             details: {}
     ValidationIssue:
@@ -627,12 +689,18 @@ components:
               bytes: { type: integer, minimum: 0, maximum: 10000000000 }
     Health:
       type: object
-      required: [status, apiVersion, synthetic, auth, dataset]
+      required: [status, apiVersion, synthetic, auth]
       properties:
-        status: { type: string, const: ok }
+        status: { type: string, enum: [ok, degraded] }
         apiVersion: { type: string }
         synthetic: { type: boolean, const: true }
-        auth: { type: string }
+        auth:
+          type: object
+          required: [mode]
+          properties:
+            mode: { type: string, enum: [off, keys] }
+            warning: { type: string }
+            problems: { type: array, items: { type: string } }
         dataset:
           type: object
           required: [seed, snapshotAt, shipments, receipts, openExceptions, traders, authorities, requirements]
