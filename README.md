@@ -1,101 +1,106 @@
 # Madoun · مدوّن
 
-**A shared shipment file for faster, pre-arrival customs clearance.**
-Check once, reuse everywhere, review in parallel, and give every delay an owner.
+A shared shipment evidence file and risk lane layer for customs clearance. Authorities check a document once and record who verified it, what it covers and when it expires; every other authority can reuse that receipt, review in parallel, and see one named owner for every delay.
 
-Built for challenge **#21 — Smart Customs Accelerated Clearance** (Abu Dhabi Customs), TDRA UAE Hackathon 2026 challenge pack.
+Built for challenge 21, Smart Customs Accelerated Clearance (Abu Dhabi Customs), TDRA UAE Hackathon 2026.
 
-> **Status:** early build. Everything here runs on **synthetic data**. Authority mappings and risk rules are **illustrative samples** and must be validated with Abu Dhabi Customs and the relevant authorities before any real use.
+Live demo: https://madoun.vercel.app/ (synthetic data, authentication off).
 
-## Proposal for Edge in one paragraph
+> **Status.** The software is complete and tested as a prototype. Everything it serves is synthetic, authority mappings are illustrative samples, and the signing keys in the demo are public. Nothing here has been run on real cargo. [docs/limitations.md](docs/limitations.md) lists what is missing, why it matters and what would close each gap. Read it before relying on any number below.
 
-Madoun proposes a robotic inspection cell for red lane containers that works under human supervision, on top of a tamper evident evidence ledger that runs offline. A robot, drone or scanner may inspect, but any serious finding it reports stays pending until a customs officer upholds or overturns it, which the engine enforces and a property test checks ([rule](src/engine/inspection.ts), [enforcement](src/engine/validate.ts), [tests](tests/confirmation.test.ts)). Robots connect through a strict gateway contract with ROS 2 messages and a reference gateway ([robotics extension](docs/robotics-extension.md), [gateway](gateway/robot.ts)). Every receipt sits in an RFC 6962 Merkle tree with signed checkpoints and proofs that a standalone script verifies offline ([verifier](scripts/verify-proof.mjs), [tests](tests/merkle.test.ts)). An egress guard inside the production server observes no outbound attempt while every page and API route is used ([offline check](scripts/offline-check.mjs)), and a preregistered digital twin of the cell reports its hits and its miss ([preregistration](docs/preregistration-cell.md), [results](docs/cell-experiment.md)). Read the two page [Edge proposal](docs/edge-proposal.md), the [architecture and evidence flow](docs/edge-architecture.md), the [threat model](docs/threat-model.md) and the [decision log](docs/decisions.md). All data is synthetic, the API is a mock, the keys are public demo keys and the robot is a simulator. Edge Group has not reviewed, endorsed or commissioned this work; the review rounds in [docs/reviews](docs/reviews) are self reviews written from an assumed professional viewpoint, not reviews by the organisations their titles refer to.
-
----
-
-## The problem
-
-A shipment arriving at an Abu Dhabi border can need approval from Customs and several other authorities. Today:
-
-- the same documents are requested and re-checked by more than one authority,
-- reviews that could run side by side run one after another,
-- nobody owns the gap between two authorities,
-- a result from one inspection rarely improves the next risk decision.
-
-This lowers the share of cargo cleared before it arrives, lengthens dwell time and raises trade costs.
-
-## What Madoun does
+## What it does
 
 | | |
 |---|---|
-| **One shipment file** | Every shipment gets a single, auditable file that all participating authorities see. |
-| **Evidence receipts** | When an authority verifies something, the file records who verified it, what it covers and when it expires. Another authority can accept it instead of asking again. Documents stay with their custodian; Madoun holds the receipt. |
-| **Parallel review** | Madoun maps which reviews depend on which, and runs the independent ones at the same time. |
-| **Risk lanes** | Green clears before arrival. Amber gets targeted checks. Red gets a physical inspection. A blue flag marks post-clearance audit. Each decision shows its reasons. |
-| **Owned exceptions** | Every stuck step has one named owner and a clock, with escalation. |
-| **Learning loop** | Inspection results, false alarms and recurring missing evidence feed back as suggestions that a human approves. |
-| **Robot-ready inspection** | Red-lane cargo becomes an inspection task that a person, robot, drone or scanner can perform. The result returns as evidence and outcome. |
+| Shipment file | One auditable file per shipment that every participating authority sees. |
+| Evidence receipts | A verified document becomes a receipt with its custodian, scope and expiry. Another authority can accept it instead of asking again. Documents stay with their custodian; Madoun holds the receipt. |
+| Parallel review | Reviews that do not depend on each other run side by side. |
+| Risk lanes | Green clears before arrival, amber gets targeted checks, red gets a physical inspection. Every lane shows its reasons, and an officer can override it with a recorded reason. |
+| Owned exceptions | Every stuck step has one named owner and a clock, with escalation. |
+| Learning loop | Inspection outcomes feed back as suggestions that a named officer approves. |
+| Inspection tasks | Red lane cargo becomes a task that a person, robot, drone or scanner can perform. A serious machine finding stays pending until a customs officer upholds or overturns it. |
+| Evidence ledger | Receipts are hash chained and signed, and checkpoints use an RFC 6962 Merkle tree, so a proof can be checked offline with `scripts/verify-proof.mjs`. |
 
-### What it is not
+It is not a replacement for ATLP or MAMAR, not a central database every agency must feed, and not an autonomous decision maker. Officers keep every legal decision.
 
-- Not a replacement for ATLP / MAMAR. It sits on top of them.
-- Not a central database every agency must feed.
-- Not an autonomous decision-maker. Officers keep every legal decision, and every recommendation can be overridden with a recorded reason.
+## What the numbers say, and what they do not
 
-## How it is built
-
-- **Engine** (`src/engine`): pure TypeScript, event-sourced. Every change is an event; state is derived. Fully unit-tested and deterministic.
-- **App** (`src/app`): Next.js UI in English and Arabic (RTL).
-- **Adapters**: ports for a single-window system, authority systems and an inspection cell. Mock adapters ship today.
-- **Data**: a seeded synthetic generator with planted edge cases (expired certificate, scope mismatch, authority conflict, idle review, repeated false alarm…).
-
-See [`docs/plan.md`](docs/plan.md) for the full plan, research basis and milestones.
-
-## Aligned with
-
-- WTO Trade Facilitation Agreement: pre-arrival processing (7.1), release separate from final determination (7.3), risk management (7.4), post-clearance audit (7.5), release-time measurement (7.6), authorised operators (7.7), border agency cooperation (Art. 8).
-- WCO Data Model vocabulary (declaration, goods shipment, consignment, transport means) and the WCO Time Release Study approach to metrics.
-- UAE National AI Strategy 2031 and the Abu Dhabi logistics-hub direction named in the challenge profile.
+- **Simulation.** On a seeded synthetic week of 240 shipments the modelled median release falls from 27.3 hours to 16.0 hours (41%) and the share cleared before arrival rises from 62.5% to 77.1%. Those figures assume slow customs steps. With customs at the published Abu Dhabi Customs average of 13.86 minutes and the filing lead time calibrated to the published 71% pre arrival share, the median falls 9% (13.6 hours to 12.4 hours). Both are model output on invented data, not a performance claim. The method and the full grid are in [docs/baselines.md](docs/baselines.md).
+- **Risk scoring.** The explainable factor model was tested against simple baselines, a plain logistic regression and an unconstrained gradient boosted reference on a published customs dataset it did not generate (a synthetic copy of Korean declarations). Predictions were committed before any model was fitted: 8 of 10 hit, 2 missed, and the misses are reported. At a 10 percent inspection budget the explainable model finds fraud 46.6% of the time against 21.6% for random order (AUC 0.716), while the unconstrained reference reaches 75.8% (AUC 0.820). That gap is the price of using only criteria the WTO Trade Facilitation Agreement permits. See [docs/benchmark-korea.md](docs/benchmark-korea.md) and [docs/preregistration-benchmark.md](docs/preregistration-benchmark.md).
+- **Inspection cell.** A preregistered digital twin of a supervised robotic cell reports 12 of 13 predictions hit ([docs/cell-experiment.md](docs/cell-experiment.md)).
 
 ## Run it
 
+Requires Node 22.5 or later.
+
 ```bash
 npm install
-npm test          # engine tests
-npm run dev       # http://localhost:3000
-npm run build
-npm run cell      # preregistered inspection cell experiment, writes docs/cell-experiment.md
-npm run offline   # after a build: checks that no outbound attempt is observed (needs a local Chromium or Edge)
+npm run dev          # http://localhost:3000
+npm run check        # lint, type check and the test suite
+npm run build && npm start
 ```
 
-Modelled result on the synthetic week (240 shipments, seeded, reproducible): median release 27.3 h → 16.0 h (−41%), p90 48.3 h → 31.1 h, approvals ready before arrival 62.5% → 77.1%, 294 repeat checks avoided. These are model outputs on invented data, not a performance claim. Queue waits for full reviews are deliberately not reduced.
+Other commands: `npm run test:coverage`, `npm run benchmark`, `npm run baselines`, `npm run cell`, `npm run bench`, `npm run offline` (after a build; needs a local Chromium or Edge), `npm run a11y` and `npm run security` (with the app running).
 
-API: a mock integration API is served under `/api/v1` (spec in `public/openapi.yaml`). Accessibility: `npm run a11y` (with the app running).
+## The API
 
-Reviews: each round of critique and its checklist is in [docs/reviews](docs/reviews). They are self reviews written from an assumed viewpoint (government office, defence systems engineer, applied AI researcher, research funder); no outside body wrote or endorsed them.
+A REST API is served under `/api/v1`; the contract is `public/openapi.yaml` and a test keeps it in step with the routes. Endpoints cover shipments, receipts, ledger checkpoints and proofs, exceptions, KPIs, assessments, batch declaration import from CSV, inspection tasks and results, health and metrics.
 
-Docs: [Edge proposal](docs/edge-proposal.md), [decision log](docs/decisions.md), [cell experiment](docs/cell-experiment.md), [key custody](docs/key-custody.md), [plan](docs/plan.md), [governance](docs/governance.md), [threat model](docs/threat-model.md), [pilot plan](docs/pilot-plan.md), [research programme](docs/research-programme.md), [AI impact assessment](docs/ai-impact-assessment.md), [model card](docs/model-card.md), [evaluation](docs/evaluation.md), [integration](docs/integration.md), [architecture](docs/architecture.md), [data model](docs/data-model.md), [robotics extension](docs/robotics-extension.md), [research notes](docs/research-notes.md), [demo script](docs/demo-script.md).
+Authentication is chosen with `MADOUN_AUTH`:
 
-## Signing keys: demo by default, development keystore optional
+```bash
+# Issue a key. It is printed once; the configuration entry holds only its hash.
+node scripts/new-api-key.mjs --id adc-officers --role authority --authority adc
 
-> **Warning.** Every signature in this repository is made with **public demo keys** unless you configure otherwise. Anyone can reproduce those keys, so a valid signature or a VALID proof shows that the mechanism works, not who signed.
+# Run with keys required (put the printed entry in a JSON array in keys.json).
+MADOUN_AUTH=keys MADOUN_API_KEYS_FILE=keys.json MADOUN_STORE=sqlite:data/events.db npm start
 
-For development you can sign ledger checkpoints with a private key kept in a file:
+curl -H "Authorization: Bearer $KEY" http://localhost:3000/api/v1/kpis
+```
+
+| Setting | Meaning |
+|---|---|
+| `MADOUN_AUTH` | `off` (default, the public demo) or `keys`. In `keys` mode a missing or invalid key configuration refuses every request with 503 instead of falling back to open access. |
+| `MADOUN_API_KEYS`, `MADOUN_API_KEYS_FILE` | JSON array of key entries: id, SHA 256 hash, role, optional authority and scopes. |
+| `MADOUN_STORE` | `memory` (default), `file:<path>` or `sqlite:<path>`. Where inspection results are kept. |
+| `MADOUN_LOG` | `json` or `off`. One JSON line per request, with no bodies, queries or keys. On by default in production. |
+| `MADOUN_LEDGER_KEY_FILE` | Development signing key, see below. |
+
+Roles are authority, auditor, operator, gateway and ops, each with a fixed set of scopes. Receipts follow their sharing policy: an authority key sees only receipts it issued or that were shared with it. Every response carries `X-Request-Id`, and `GET /api/v1/metrics` serves Prometheus text per process. Details: [docs/integration.md](docs/integration.md), [docs/import.md](docs/import.md), [docs/threat-model.md](docs/threat-model.md).
+
+## How it is built
+
+- **Engine** (`src/engine`): pure TypeScript and event sourced. Every change is an event and state is derived, so results are deterministic and replayable. A behaviour fingerprint test pins the simulation output.
+- **Application** (`src/app`): Next.js interface in English and Arabic (right to left).
+- **Server** (`src/server`): validation, authentication, rate limiting, request log and metrics, the event store and the ledger checkpoint.
+- **Data** (`src/data`): a seeded synthetic generator with planted edge cases such as an expired certificate, a scope mismatch, an authority conflict and an idle review.
+- **Gateway** (`gateway`): a dependency free reference inspection gateway, with ROS 2 message definitions in [docs/robotics-extension.md](docs/robotics-extension.md).
+
+Continuous integration runs lint, type check, tests with coverage floors, the production build, accessibility and security scans, and a dependency audit. [CONTRIBUTING.md](CONTRIBUTING.md) describes the workflow and [SECURITY.md](SECURITY.md) how to report a problem.
+
+## Signing keys: demo by default
+
+> **Warning.** Every signature in this repository is made with public demo keys unless you configure otherwise. Anyone can reproduce those keys, so a valid signature or a VALID proof shows that the mechanism works, not who signed.
 
 ```bash
 node scripts/dev-keystore.mjs .keys/ledger.key
+MADOUN_LEDGER_KEY_FILE=.keys/ledger.key npm start
 ```
 
-Then start the server with `MADOUN_LEDGER_KEY_FILE=.keys/ledger.key`. The `.keys/` folder is ignored by git. **A key in a file is not key custody**: anyone who can read the file can sign. Production keys belong in a hardware security module or a key management service; see [docs/key-custody.md](docs/key-custody.md).
+A key in a file is not key custody. Production keys belong in a hardware security module or a key management service ([docs/key-custody.md](docs/key-custody.md)).
 
-## Roadmap
+## Aligned with
 
-See the milestone table in [`plan.md`](docs/plan.md#8-milestones-tags). Each milestone is a git tag.
+WTO Trade Facilitation Agreement (pre arrival processing 7.1, release separate from final determination 7.3, risk management 7.4, post clearance audit 7.5, release time measurement 7.6, authorised operators 7.7, border agency cooperation Article 8); WCO Data Model vocabulary and the WCO Time Release Study approach; the UAE National AI Strategy 2031 and the Abu Dhabi logistics direction named in the challenge profile. Risk logic uses only objective criteria the TFA lists as permissible (tariff code, goods type, origin, shipping country, value, trader compliance history, transport mode) and does not profile individuals.
 
-## Responsible use
+## Documentation
 
-Madoun's risk logic uses only objective criteria that the WTO TFA lists as permissible for risk management (tariff code, goods type, origin, shipping country, value, trader compliance history, transport mode). It does not profile individuals. Outputs are recommendations with reasons.
+Start with [limitations](docs/limitations.md), the [plan](docs/plan.md), [architecture](docs/architecture.md) and [integration](docs/integration.md). Evidence and method: [baselines](docs/baselines.md), [benchmark](docs/benchmark-korea.md), [evaluation](docs/evaluation.md), [model card](docs/model-card.md), [cell experiment](docs/cell-experiment.md), [decision log](docs/decisions.md). Assurance: [threat model](docs/threat-model.md), [key custody](docs/key-custody.md), [AI impact assessment](docs/ai-impact-assessment.md), [governance](docs/governance.md), [pilot plan](docs/pilot-plan.md). Also the [Edge proposal](docs/edge-proposal.md) and its [architecture](docs/edge-architecture.md), the [robotics extension](docs/robotics-extension.md), [data model](docs/data-model.md), [declaration import](docs/import.md) and the [demo script](docs/demo-script.md).
+
+The review rounds in [docs/reviews](docs/reviews) are self reviews written from an assumed professional viewpoint. No outside body wrote or endorsed them. Edge Group has not reviewed, endorsed or commissioned this work.
+
+Milestones are listed in the [plan](docs/plan.md#8-milestones--tags) and the [changelog](CHANGELOG.md).
 
 ## Licence
 
-MIT — see [`LICENSE`](LICENSE).
+MIT, see [LICENSE](LICENSE).
