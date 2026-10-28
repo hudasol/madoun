@@ -131,7 +131,7 @@ async function main() {
       const what = p.status === 201 ? (p.awaitingOfficerConfirmation ? 'recorded, awaiting officer confirmation' : 'recorded') : `rejected: ${p.error}`;
       console.log(`  ${p.taskId}: HTTP ${p.status}, ${what}`);
     }
-    if (i + 1 < polls) await new Promise((r) => setTimeout(r, interval));
+    if (i + 1 < polls) await new Promise((resolve) => setTimeout(resolve, interval));
   }
 }
 

@@ -58,7 +58,7 @@ export function ApprovalsSection({ file, plan }: { file: ShipmentFile; plan: Shi
   const L = useLabels();
   const dir = s.directory!;
   const receipts = s.world!.receipts;
-  const total = plan.instances.reduce((n, _) => n + 1, 0);
+  const total = plan.instances.length;
   const itemsTotal = file.shipment.consignments.flatMap((c) => c.items).length;
   const gaps = plan.checks.filter((c) => isGap(c.verdict)).length;
   const ok = plan.checks.filter((c) => c.verdict === 'satisfied-own' || c.verdict === 'satisfied-reuse').length;

@@ -49,13 +49,13 @@ export function merkleRoot(leaves: Hash[], size = leaves.length): Hash {
 /** RFC 6962 PATH(m, D[n]): the audit path for leaf m in the tree of the first n leaves. */
 export function inclusionProof(leaves: Hash[], m: number, n = leaves.length): Hash[] {
   if (!(n >= 1 && n <= leaves.length && m >= 0 && m < n)) throw new RangeError('leaf index or tree size out of range');
-  const path = (m: number, start: number, end: number): Hash[] => {
+  const path = (idx: number, start: number, end: number): Hash[] => {
     const size = end - start;
     if (size === 1) return [];
     const k = split(size);
-    return m < k
-      ? [...path(m, start, start + k), mth(leaves, start + k, end)]
-      : [...path(m - k, start + k, end), mth(leaves, start, start + k)];
+    return idx < k
+      ? [...path(idx, start, start + k), mth(leaves, start + k, end)]
+      : [...path(idx - k, start + k, end), mth(leaves, start, start + k)];
   };
   return path(m, 0, n);
 }
@@ -63,13 +63,13 @@ export function inclusionProof(leaves: Hash[], m: number, n = leaves.length): Ha
 /** RFC 6962 PROOF(m, D[n]): proves the tree of the first m leaves is a prefix of the tree of n leaves. */
 export function consistencyProof(leaves: Hash[], m: number, n = leaves.length): Hash[] {
   if (!(m >= 1 && m <= n && n <= leaves.length)) throw new RangeError('sizes out of range');
-  const sub = (m: number, start: number, end: number, b: boolean): Hash[] => {
+  const sub = (count: number, start: number, end: number, b: boolean): Hash[] => {
     const size = end - start;
-    if (m === size) return b ? [] : [mth(leaves, start, end)];
+    if (count === size) return b ? [] : [mth(leaves, start, end)];
     const k = split(size);
-    return m <= k
-      ? [...sub(m, start, start + k, b), mth(leaves, start + k, end)]
-      : [...sub(m - k, start + k, end, false), mth(leaves, start, start + k)];
+    return count <= k
+      ? [...sub(count, start, start + k, b), mth(leaves, start + k, end)]
+      : [...sub(count - k, start + k, end, false), mth(leaves, start, start + k)];
   };
   return sub(m, 0, n, true);
 }

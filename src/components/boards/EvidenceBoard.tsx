@@ -73,9 +73,10 @@ export function EvidenceBoard() {
     } catch { /* ignore */ }
   }, []);
 
-  const receipts = useMemo(() => s.world?.receipts.filter((r) => s.canSee(r)), [s.world, s.viewAs]); // eslint-disable-line react-hooks/exhaustive-deps
+  const { world, canSee } = s;
+  const receipts = useMemo(() => world?.receipts.filter((r) => canSee(r)), [world, canSee]);
   const total = s.world?.receipts.length ?? 0;
-  const atMs = ms(s.at || new Date().toISOString());
+  const atMs = s.at ? ms(s.at) : 0;
 
   const state = (r: EvidenceReceipt): 'valid' | 'soon' | 'expired' | 'revoked' | 'pending' => {
     if (r.status === 'revoked') return 'revoked';
@@ -89,7 +90,10 @@ export function EvidenceBoard() {
   const stats = useMemo(() => {
     const list = receipts ?? [];
     let reuse = 0, cross = 0;
-    for (const r of list) for (const e of r.reuseLog) { reuse++; if (r.scope.level !== 'shipment') cross++; }
+    for (const r of list) {
+      reuse += r.reuseLog.length;
+      if (r.scope.level !== 'shipment') cross += r.reuseLog.length;
+    }
     const all = s.world?.receipts ?? [];
     const chain = verifyChain(all);
     return { reuse, cross, chain, head: all.length ? all[all.length - 1].hash : '' };
