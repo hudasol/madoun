@@ -43,7 +43,7 @@ export function CellComparison() {
   ];
   return (
     <section className="mt-10" aria-labelledby="cell-h">
-      <h2 id="cell-h" className="text-[1.1rem]">{t('title')} <Modelled>{t('tag')}</Modelled></h2>
+      <h2 id="cell-h" className="text-[1rem]">{t('title')} <Modelled>{t('tag')}</Modelled></h2>
       <p className="mt-1 max-w-[80ch] text-muted">{t('intro', { hits: results.hits, n: results.predictionCount, misses: results.misses })}</p>
       <div className="panel relative mt-3 overflow-x-auto">
         <table className="table-clean min-w-[860px]">

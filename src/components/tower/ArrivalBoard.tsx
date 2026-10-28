@@ -90,21 +90,21 @@ export function ArrivalBoard() {
     <section className="panel" aria-labelledby="board-h">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-line px-4 py-3">
         <h2 id="board-h" className="sr-only">{t('listLabel')}</h2>
-        <div role="group" aria-label={t('filterLane')} className="flex flex-wrap gap-2">
+        <div role="group" aria-label={t('filterLane')} className="seg">
           {lanes.map((l) => (
             <button
               key={l}
               type="button"
               aria-pressed={lane === l}
               onClick={() => setLane(l)}
-              className={`btn !py-1 ${lane === l ? '!border-ink !bg-panel2' : ''}`}
+              className="btn"
             >
               {l === 'all' ? t('all') : <LaneBadge lane={l} size="sm" />}
             </button>
           ))}
         </div>
-        <button type="button" aria-pressed={risk} onClick={() => setRisk((r) => !r)} className={`btn !py-1 ${risk ? '!border-ink !bg-panel2' : ''}`} title={t('atRiskHint')}>
-          <span aria-hidden="true" className={`inline-block h-3 w-3 border border-ink ${risk ? 'bg-ink' : ''}`} />
+        <button type="button" aria-pressed={risk} onClick={() => setRisk((r) => !r)} className="btn" title={t('atRiskHint')}>
+          <span aria-hidden="true" className={`inline-block h-2.5 w-2.5 border border-ink ${risk ? 'bg-ink' : ''}`} />
           {t('atRisk')}
         </button>
         <p className="ms-auto text-sm text-muted" aria-live="polite">{t('showing', { n: shown.length, total: rows.length })}</p>
