@@ -9,4 +9,4 @@ Why Madoun is a layer and not another portal.
 - **TradeLens (shut down 2022)**: lessons taken as design rules: federated custody of evidence, value for every participant, neutral governance, no data lock-in.
 - **Known limits**: authority rules, response times and goods-to-approval mappings here come from secondary public sources and are illustrative. Real figures need validation with Abu Dhabi Customs and each authority.
 
-See `plan.md` for the full competitor and limitation table.
+See `docs/plan.md` for the full competitor and limitation table.

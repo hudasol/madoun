@@ -49,7 +49,7 @@ This lowers the share of cargo cleared before it arrives, lengthens dwell time a
 - **Adapters**: ports for a single-window system, authority systems and an inspection cell. Mock adapters ship today.
 - **Data**: a seeded synthetic generator with planted edge cases (expired certificate, scope mismatch, authority conflict, idle review, repeated false alarm…).
 
-See [`plan.md`](plan.md) for the full plan, research basis and milestones.
+See [`docs/plan.md`](docs/plan.md) for the full plan, research basis and milestones.
 
 ## Aligned with
 
@@ -74,7 +74,7 @@ API: a mock integration API is served under `/api/v1` (spec in `public/openapi.y
 
 Reviews: each round of critique and its checklist is in [docs/reviews](docs/reviews). They are self reviews written from an assumed viewpoint (government office, defence systems engineer, applied AI researcher, research funder); no outside body wrote or endorsed them.
 
-Docs: [Edge proposal](docs/edge-proposal.md), [decision log](docs/decisions.md), [cell experiment](docs/cell-experiment.md), [key custody](docs/key-custody.md), [plan](plan.md), [governance](docs/governance.md), [threat model](docs/threat-model.md), [pilot plan](docs/pilot-plan.md), [research programme](docs/research-programme.md), [AI impact assessment](docs/ai-impact-assessment.md), [model card](docs/model-card.md), [evaluation](docs/evaluation.md), [integration](docs/integration.md), [architecture](docs/architecture.md), [data model](docs/data-model.md), [robotics extension](docs/robotics-extension.md), [research notes](docs/research-notes.md), [demo script](docs/demo-script.md).
+Docs: [Edge proposal](docs/edge-proposal.md), [decision log](docs/decisions.md), [cell experiment](docs/cell-experiment.md), [key custody](docs/key-custody.md), [plan](docs/plan.md), [governance](docs/governance.md), [threat model](docs/threat-model.md), [pilot plan](docs/pilot-plan.md), [research programme](docs/research-programme.md), [AI impact assessment](docs/ai-impact-assessment.md), [model card](docs/model-card.md), [evaluation](docs/evaluation.md), [integration](docs/integration.md), [architecture](docs/architecture.md), [data model](docs/data-model.md), [robotics extension](docs/robotics-extension.md), [research notes](docs/research-notes.md), [demo script](docs/demo-script.md).
 
 ## Signing keys: demo by default, development keystore optional
 
@@ -90,7 +90,7 @@ Then start the server with `MADOUN_LEDGER_KEY_FILE=.keys/ledger.key`. The `.keys
 
 ## Roadmap
 
-See the milestone table in [`plan.md`](plan.md#8-milestones--tags). Each milestone is a git tag.
+See the milestone table in [`plan.md`](docs/plan.md#8-milestones-tags). Each milestone is a git tag.
 
 ## Responsible use
 

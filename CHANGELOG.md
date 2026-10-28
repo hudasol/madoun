@@ -14,31 +14,31 @@ Proposal ready package for a supervised robotic inspection cell with tamper evid
 - **Independent review and fixes** (9f71a6d, 31c2153, 649e46c, 6a9bd26, 580d257, 226303b, a80aec0, 7443328, b10d28b, 433458b): four bypasses of the confirmation rule closed and added to the property test, officer results refused on the device route, gateway receipts checkpointed, proof coverage and origin checks, server side proofs in the UI, corrected cell run, a stricter offline check, self review framing, older documents updated. See docs/reviews/05-edge-proposal.md and decisions D13.
 - Tests: 139 at v1.4.0, 218 at this tag.
 
-## v1.4.0-atrc — review round 4 (national research and strategy)
+## v1.4.0-atrc: review round 4 (national research and strategy)
 - Pilot plan page (EN/AR) with gates, stop criteria, day-one roles, readiness by component and an audit sample-size calculator; research programme for robotic inspection; AI impact assessment. See docs/reviews/04-atrc.md.
 
-## v1.3.0-tii — review round 3 (applied AI research)
+## v1.3.0-tii: review round 3 (applied AI research)
 - Post-clearance audits of flagged green shipments, interval-aware learning, model check (lanes, baselines, learned challenger, burden by group), simulator spread, model card, generated evaluation report. See docs/reviews/03-tii.md.
 
-## v1.2.0-edge — review round 2 (defence and security systems)
+## v1.2.0-edge: review round 2 (defence and security systems)
 - Ed25519 receipt attestations (demo keys), linear-time replay and simulation, event validation, API limits, security headers and CSP, noble SHA-256, property and differential tests, threat model, SBOM, CI. See docs/reviews/02-edge.md.
 
-## v1.1.0-adeo — review round 1 (government office)
+## v1.1.0-adeo: review round 1 (government office)
 - Mock integration API (`/api/v1`), OpenAPI, JSON Schemas; role lens; clearance-record export; business-case panel; governance doc; Arabic data twins; reuse metric rebuilt; WCAG scan to zero violations. See docs/reviews/01-adeo.md.
 
-## v0.9.1-polish — UI polish pass
+## v0.9.1-polish: UI polish pass
 - Sticky header with nav indicator, consistent form controls and slider, table and panel depth, button states, mobile header, tower column fit. No feature changes.
 
-## v0.9.0-demo — docs, demo script, polish
+## v0.9.0-demo: docs, demo script, polish
 - Architecture, data model, robotics extension, research notes, demo script. Favicon, humanised learning rationale.
 
-## v0.4.0-boards — exceptions, evidence, learning, inspection, simulator, method
+## v0.4.0-boards: exceptions, evidence, learning, inspection, simulator, method
 - Six operational boards, bilingual, with working actions (resolve, approve, preview, run inspection).
 
-## v0.3.0-ui — control tower and shipment file
+## v0.3.0-ui: control tower and shipment file
 - Arrival board, shipment list, per-shipment evidence file with lane explanation, timeline and audit.
 
-## v0.2.0-engine — evidence, reviews, risk, exceptions, learning, inspection seam, simulator
+## v0.2.0-engine: evidence, reviews, risk, exceptions, learning, inspection seam, simulator
 - Event-sourced engine (pure TypeScript) with deterministic replay and time travel.
 - Evidence receipts with provenance, scope, validity, custodian sharing policy, reuse log and a hash chain.
 - Requirement mapping, parallel review graph with critical path and sequential baseline.
@@ -47,7 +47,7 @@ Proposal ready package for a supervised robotic inspection cell with tamper evid
 - Inspection task/result contract and an inspection-cell simulator.
 - Seeded synthetic data generator and full-process simulator. 62 tests.
 
-## v0.0.1-plan — plan, README, licence
+## v0.0.1-plan: plan, README, licence
 
 ## Tags and GitHub topics
 Tags exist locally; the sandbox could not push tags or edit repo topics. Run from a clone with push access:

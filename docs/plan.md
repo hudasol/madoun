@@ -1,4 +1,4 @@
-# Madoun (مدوّن) — build plan
+# Madoun (مدوّن): build plan
 
 > Status: living document. Last updated 2026-10-09.
 > Challenge: **#21 Smart Customs Accelerated Clearance** (Abu Dhabi Customs), TDRA UAE Hackathon 2026 challenge pack.
@@ -17,7 +17,7 @@ The challenge's five root causes, which are the five things Madoun is built agai
 | R4 | Routine and complex cargo follow the same steps | **Risk lanes** (green / amber / red, plus a blue post-clearance audit flag) with different pathways |
 | R5 | Outcomes don't feed a shared learning cycle | **Outcome loop**: inspection results, false interventions and recurring missing evidence update future decisions |
 
-## 2. What Madoun is — and is not
+## 2. What Madoun is: and is not
 
 **Is:** an orchestration layer that sits *on top of* existing single-window and port-community systems (Abu Dhabi: MAMAR, Maqta PCS, ATLP) and gives each shipment one shared, auditable file.
 
@@ -45,14 +45,14 @@ The challenge's five root causes, which are the five things Madoun is built agai
 
 ### 3.2 Standards we align with
 - **WTO Trade Facilitation Agreement**: Art. 7.1 pre-arrival processing; 7.3 release separate from final duty determination; 7.4 risk management; 7.5 post-clearance audit feeding risk management; 7.6 average release time measurement; 7.7 authorised operators; Art. 8 border agency cooperation (aligned hours, procedures, joint controls). Madoun's metrics are chosen so they can be reported against these.
-- **WCO Data Model**: three main class levels — Declaration/GoodsShipment (goods declaration), Declaration/Consignment (cargo report, transport contract), Declaration/BorderTransportMeans (conveyance report). Classes nest. Our shipment model mirrors this vocabulary.
+- **WCO Data Model**: three main class levels, Declaration/GoodsShipment (goods declaration), Declaration/Consignment (cargo report, transport contract), Declaration/BorderTransportMeans (conveyance report). Classes nest. Our shipment model mirrors this vocabulary.
 - **Multiple-level data filing** (Swedish Customs' WCO-based implementation): store each fact at the lowest level where it is true; one transport document per consignment; invoice-level data at goods-shipment level vs item level. We copy the hierarchy and cardinality rules.
 - **Verifiable-credential style validation** (UNECE/eTradeForAll): validate documents at source via issuer-signed claims and status checks, not via a central intermediary. Our *evidence receipt* is a simplified, signable analogue. Real signing/PKI is out of scope for the demo (hash-chained receipts only).
 - **WCO Time Release Study** categories: lane routing (green/yellow/red/blue), time per step, "inaction time", whether OGA time runs concurrently with customs time. These are our KPI definitions.
 
 ### 3.3 UAE context
-- Federal layer: ICP (Federal Authority for Identity, Citizenship, Customs & Port Security) oversees customs; each emirate has a local customs authority (Abu Dhabi Customs among them). The federal/local split of duties is not fully described in public pages we found — **to confirm with a domain contact**.
-- HS classification under the GCC tariff (reported 12-digit from Jan 2025 in one secondary source — **verify**).
+- Federal layer: ICP (Federal Authority for Identity, Citizenship, Customs & Port Security) oversees customs; each emirate has a local customs authority (Abu Dhabi Customs among them). The federal/local split of duties is not fully described in public pages we found; **to confirm with a domain contact**.
+- HS classification under the GCC tariff (reported 12-digit from Jan 2025 in one secondary source; **verify**).
 - Typical import documents: commercial invoice, packing list, bill of lading / air waybill, certificate of origin, delivery order, import permit for restricted goods.
 - Regulated-goods approvals by category (secondary sources): food (MOCCAE / emirate food-safety authority), electronics and conformity (ESMA, now under MOIAT), pharmaceuticals and some medical (MOHAP), wireless/telecom type approval (TDRA), chemicals (MOCCAE).
 
@@ -127,7 +127,7 @@ madoun/
 
 ### 5.3 Data model (WCO-flavoured, simplified)
 - **Shipment** `{ id, declarationRef, transportMode, borderTransportMeans{ vessel/flight/truck, eta, port }, consignments[{ transportDocRef, consignor, consignee, items[] }], goodsShipment{ invoiceRef, incoterm, currency, totalValue }, trader{ id, aeoStatus, history } }`
-- **GoodsItem** `{ hsCode, description, origin, value, quantity, packages, category, handlingFlags[] }` — facts stored at the lowest level where true.
+- **GoodsItem** `{ hsCode, description, origin, value, quantity, packages, category, handlingFlags[] }`, facts stored at the lowest level where true.
 - **Authority** `{ id, name, mandate, workingHours, slaHours, riskSignals[] }`
 - **Requirement** `{ id, authorityId, kind, appliesTo(goods), acceptsEvidenceTypes[], maxAgeDays }`
 - **EvidenceReceipt** `{ id, subject(document or claim), type, issuer, custodian, verifiedBy, method, scope{ hs chapters, origin, trader, shipment|trader|product }, validFrom, validUntil, status, acceptanceRules, hash, prevHash, reuseLog[] }`
@@ -138,12 +138,12 @@ madoun/
 - **Outcome** `{ shipmentId, intervention, result: confirmed|false-alarm|none, findings[], missingEvidence[] }`
 
 ### 5.4 Key algorithms (all transparent)
-1. **Evidence acceptance** — receipt R satisfies requirement Q for shipment S iff: type allowed; R not expired at `now`; R.scope covers S (HS chapter, origin, trader/product/shipment level); R.status = verified; R.custodian reachable (or snapshot within allowed age). Otherwise return the *specific* reason (`expired`, `scope-too-narrow`, `type-not-accepted`, `revoked`, `none`). Reuse is logged so we can report "checks avoided".
-2. **Review graph** — each review lists `dependsOn`. Topological layering gives the parallel schedule; longest weighted path gives the critical path. We report `sequentialHours` vs `parallelHours`. Real dependencies are modelled (e.g. a conformity certificate may be needed before the customs examination decision) so the saving isn't faked.
-3. **Risk combination** — per authority: score = Σ(weight × signal) → authority lane. Overall lane = highest-severity lane, but the *scope* of the intervention stays with the authority that raised it (so one authority's red does not silently turn the whole shipment red for everyone). Conflicts (e.g. one authority green + another red on the same item) are listed with the rule that resolved them. Trusted-operator status (AEO) lowers scores only within TFA-7.7-style benefits.
-4. **Exception clocks** — each open dependency without activity beyond its SLA opens an exception with an owner (owner = authority named on the blocking review; fallback = customs duty officer). Escalation after N hours, configurable.
-5. **Learning** — counts per (factor, category) of interventions vs confirmed findings → hit rate; recurring missing-evidence types per trader/forwarder; suggestions such as "raise evidence pre-check for X" or "lower weight of factor Y (hit rate 3% over 120 cases)". Suggestions need a human to approve; the engine never self-edits rules.
-6. **Metrics** — pre-arrival-cleared %, median/p90 release time by lane, "inaction time" (waiting with no owner action), repeat verifications avoided, exceptions ageing, false-intervention rate. Definitions follow the WCO time-release approach.
+1. **Evidence acceptance**: receipt R satisfies requirement Q for shipment S iff: type allowed; R not expired at `now`; R.scope covers S (HS chapter, origin, trader/product/shipment level); R.status = verified; R.custodian reachable (or snapshot within allowed age). Otherwise return the *specific* reason (`expired`, `scope-too-narrow`, `type-not-accepted`, `revoked`, `none`). Reuse is logged so we can report "checks avoided".
+2. **Review graph**: each review lists `dependsOn`. Topological layering gives the parallel schedule; longest weighted path gives the critical path. We report `sequentialHours` vs `parallelHours`. Real dependencies are modelled (e.g. a conformity certificate may be needed before the customs examination decision) so the saving isn't faked.
+3. **Risk combination**: per authority: score = Σ(weight × signal) → authority lane. Overall lane = highest-severity lane, but the *scope* of the intervention stays with the authority that raised it (so one authority's red does not silently turn the whole shipment red for everyone). Conflicts (e.g. one authority green + another red on the same item) are listed with the rule that resolved them. Trusted-operator status (AEO) lowers scores only within TFA-7.7-style benefits.
+4. **Exception clocks**: each open dependency without activity beyond its SLA opens an exception with an owner (owner = authority named on the blocking review; fallback = customs duty officer). Escalation after N hours, configurable.
+5. **Learning**: counts per (factor, category) of interventions vs confirmed findings → hit rate; recurring missing-evidence types per trader/forwarder; suggestions such as "raise evidence pre-check for X" or "lower weight of factor Y (hit rate 3% over 120 cases)". Suggestions need a human to approve; the engine never self-edits rules.
+6. **Metrics**: pre-arrival-cleared %, median/p90 release time by lane, "inaction time" (waiting with no owner action), repeat verifications avoided, exceptions ageing, false-intervention rate. Definitions follow the WCO time-release approach.
 
 ### 5.5 The robotics seam
 - Contract: `InspectionTask { id, shipmentId, containerId, requestedBy, scope[], constraints }` → `InspectionResult { taskId, performedBy(robot id|officer), sensors[], findings[], media[], seal{ intact, id }, completedAt }`.
@@ -155,13 +155,13 @@ madoun/
 **Hero element (the one memorable thing): the shipment file with rubber-stamp evidence receipts.** A receipt reads like a customs stamp: authority, what was verified, valid-until. Reused receipts show a second, lighter stamp for each authority that accepted them. The rest of the interface stays quiet.
 
 Screens:
-1. **Control tower** — lane board (counts and aging), pre-arrival-cleared %, repeat checks avoided, open exceptions.
-2. **Shipment file** — container/consignment header, goods, required approvals vs receipts (with reasons for any gap), review timeline (parallel vs sequential), lane explanation, exceptions, audit trail.
-3. **Exceptions** — owned, clocked, escalating.
-4. **Evidence ledger** — all receipts, reuse counts, expiring soon, revoked.
-5. **Learning** — hit rates by factor, recurring missing evidence, pending rule suggestions.
-6. **Inspection** — tasks, simulated cell, result ingestion.
-7. **Simulator** — replay a day of synthetic arrivals: "today" vs "with Madoun".
+1. **Control tower**: lane board (counts and aging), pre-arrival-cleared %, repeat checks avoided, open exceptions.
+2. **Shipment file**: container/consignment header, goods, required approvals vs receipts (with reasons for any gap), review timeline (parallel vs sequential), lane explanation, exceptions, audit trail.
+3. **Exceptions**: owned, clocked, escalating.
+4. **Evidence ledger**: all receipts, reuse counts, expiring soon, revoked.
+5. **Learning**: hit rates by factor, recurring missing evidence, pending rule suggestions.
+6. **Inspection**: tasks, simulated cell, result ingestion.
+7. **Simulator**: replay a day of synthetic arrivals: "today" vs "with Madoun".
 
 Cross-cutting: English + Arabic with RTL, light/dark via CSS variables, keyboard focus, reduced motion respected, mobile-friendly.
 
