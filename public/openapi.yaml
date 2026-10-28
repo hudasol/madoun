@@ -399,6 +399,75 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ValidationError' }
+  /declarations/import:
+    post:
+      tags: [Adapter]
+      operationId: importDeclarations
+      x-required-scope: assessments:write
+      summary: Assess a batch of declarations from CSV or JSON without persisting them
+      description: |
+        Send `text/csv` (one row per declared item; the columns are listed in `docs/import.md`) or an
+        `application/json` array of `AssessmentRequest` objects. Each declaration is validated and assessed
+        on its own and answered on its own, so one bad declaration does not hide a good one. At most 50
+        declarations, 2000 rows and 1,000,000 bytes per request. **Nothing is stored.**
+      requestBody:
+        required: true
+        content:
+          text/csv:
+            schema: { type: string }
+          application/json:
+            schema:
+              type: array
+              items: { $ref: '#/components/schemas/AssessmentRequest' }
+      responses:
+        '200':
+          description: One result per declaration (not persisted)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [persisted, evaluatedAt, total, accepted, rejected, results]
+                properties:
+                  persisted: { type: boolean, const: false }
+                  evaluatedAt: { type: string, format: date-time }
+                  total: { type: integer }
+                  accepted: { type: integer }
+                  rejected: { type: integer }
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      required: [declarationRef, accepted]
+                      properties:
+                        declarationRef: { type: string }
+                        accepted: { type: boolean }
+                        lane: { $ref: '#/components/schemas/Lane' }
+                        pathway: { type: string }
+                        unsatisfiedEvidence: { type: integer, description: Required evidence not yet satisfied by a verified receipt. }
+                        assessment: { type: object }
+                        issues:
+                          type: array
+                          items: { type: object, required: [path, message], properties: { path: { type: string }, message: { type: string } } }
+        '400':
+          description: JSON body is not valid JSON (`invalid_json`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorShape' }
+        '413':
+          description: Body larger than 1000000 bytes (`payload_too_large`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorShape' }
+        '415':
+          description: Content-Type is neither text/csv nor application/json (`unsupported_media_type`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorShape' }
+        '422':
+          description: The file as a whole could not be read (bad CSV, missing columns, a declaration whose rows disagree, too many rows) (`validation_failed`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ValidationError' }
   /inspection-tasks:
     get:
       tags: [Inspection]
