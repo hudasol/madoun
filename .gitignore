@@ -12,3 +12,6 @@ next-env.d.ts
 
 # development signing keys (scripts/dev-keystore.mjs); never commit
 .keys/
+
+# reference datasets fetched by scripts/fetch-reference-data.mjs; never committed
+data/external/
