@@ -21,3 +21,4 @@ export * from './evaluate';
 export * from './cell';
 export * from './merkle';
 export * from './checkpoint';
+export * from './factor-model';
