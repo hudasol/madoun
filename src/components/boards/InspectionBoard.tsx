@@ -8,6 +8,7 @@ import { Loading, PageTitle, Panel } from '@/components/Panel';
 import { useBi, useFormat, useT } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { CellComparison } from './CellComparison';
+import { CellView } from './CellView';
 import { Modelled } from './Figures';
 import { useLabels } from './labels';
 
@@ -57,6 +58,7 @@ export function InspectionBoard() {
   const bi = useBi();
   const L = useLabels();
   const [message, setMessage] = useState('');
+  const [pulse, setPulse] = useState(0);
 
   const waiting = useMemo(
     () => s.inFlight.filter((x) => !x.file.inspectionResult && (x.lane === 'red' || (x.lane === 'amber' && x.plan.assessment.recommendedChecks.length > 0))),
@@ -94,6 +96,7 @@ export function InspectionBoard() {
   const run = (id: string) => {
     s.runInspection(id);
     setMessage(t('ran', { id }));
+    setPulse((n) => n + 1);
   };
   const receiptExists = (taskId: string) => s.world!.receipts.some((r) => r.id === `rcpt-${taskId}`);
 
@@ -109,6 +112,8 @@ export function InspectionBoard() {
           </ul>
         </div>
       )}
+
+      <div className="mb-6"><CellView pulse={pulse} /></div>
 
       <section aria-labelledby="wait">
         <h2 id="wait" className="mb-1 text-[1.1rem]">{t('waiting')}</h2>
