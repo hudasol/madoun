@@ -104,12 +104,17 @@ export function parseKeyConfig(raw: unknown): { entries: KeyEntry[] } | { proble
 
 type Loaded = { entries: KeyEntry[] } | { problems: string[] };
 let cache: { source: string; loaded: Loaded } | undefined;
+/** The key file is re read only when its modification time changes, not on every request. */
+let fileCache: { path: string; mtimeMs: number; text: string } | undefined;
 
 function loadConfig(env: NodeJS.ProcessEnv): Loaded {
   let source = env.MADOUN_API_KEYS ?? '';
   if (!source && env.MADOUN_API_KEYS_FILE) {
     try {
-      source = fs.readFileSync(env.MADOUN_API_KEYS_FILE, 'utf8');
+      const path = env.MADOUN_API_KEYS_FILE;
+      const mtimeMs = fs.statSync(path).mtimeMs;
+      if (fileCache?.path !== path || fileCache.mtimeMs !== mtimeMs) fileCache = { path, mtimeMs, text: fs.readFileSync(path, 'utf8') };
+      source = fileCache.text;
     } catch {
       return { problems: ['MADOUN_API_KEYS_FILE could not be read'] };
     }
@@ -128,8 +133,19 @@ function loadConfig(env: NodeJS.ProcessEnv): Loaded {
   return loaded;
 }
 
+/**
+ * Authentication is off only when MADOUN_AUTH is unset, empty or exactly `off`. Any other value, including a
+ * misspelling such as `Keys`, turns it on, so a typo fails closed. A value other than `keys` is also
+ * reported by configProblems and makes every non public request answer 503.
+ */
 export function authMode(env: NodeJS.ProcessEnv = process.env): 'off' | 'keys' {
-  return env.MADOUN_AUTH === 'keys' ? 'keys' : 'off';
+  const v = env.MADOUN_AUTH;
+  return v === undefined || v === '' || v === 'off' ? 'off' : 'keys';
+}
+
+function modeProblem(env: NodeJS.ProcessEnv): string | undefined {
+  const v = env.MADOUN_AUTH;
+  return v === undefined || v === '' || v === 'off' || v === 'keys' ? undefined : 'MADOUN_AUTH must be "off" or "keys"';
 }
 
 const DEMO: Caller = { id: 'demo', role: 'demo', scopes: new Set(SCOPES) };
@@ -160,7 +176,7 @@ export function authenticate(request: Request, scope: Scope | undefined, isPubli
     return { ok: false, status: 401, code: 'unauthorized', message: 'Send an API key as "Authorization: Bearer <key>".', challenge: true };
   }
   const config = loadConfig(env);
-  if ('problems' in config) {
+  if (modeProblem(env) || 'problems' in config) {
     return { ok: false, status: 503, code: 'auth_misconfigured', message: 'API keys are not configured correctly on the server. The request was refused.' };
   }
   const entry = match[1].startsWith(KEY_PREFIX) ? findEntry(config.entries, hashKey(match[1])) : undefined;
@@ -176,7 +192,8 @@ export function authenticate(request: Request, scope: Scope | undefined, isPubli
 export function configProblems(env: NodeJS.ProcessEnv = process.env): string[] | undefined {
   if (authMode(env) === 'off') return undefined;
   const config = loadConfig(env);
-  return 'problems' in config ? config.problems : undefined;
+  const problems = [...(modeProblem(env) ? [modeProblem(env)!] : []), ...('problems' in config ? config.problems : [])];
+  return problems.length ? problems : undefined;
 }
 
 /**

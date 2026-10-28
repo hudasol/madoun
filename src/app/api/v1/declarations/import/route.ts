@@ -1,5 +1,5 @@
 import { getWorld } from '@/server/world';
-import { errorResponse, handle, json } from '@/server/http';
+import { errorResponse, handle, json, readCappedText } from '@/server/http';
 import { IMPORT_LIMITS, csvToPayloads } from '@/server/import';
 import { validateAssessmentRequest, type ValidationIssue } from '@/server/validate';
 import { planShipment } from '@/engine';
@@ -12,10 +12,8 @@ import { planShipment } from '@/engine';
 export async function POST(request: Request) {
   return handle(request, async () => {
     const type = (request.headers.get('content-type') ?? '').toLowerCase();
-    const declared = Number(request.headers.get('content-length') ?? 0);
-    if (declared > IMPORT_LIMITS.bytes) return errorResponse(413, 'payload_too_large', `Body must be at most ${IMPORT_LIMITS.bytes} bytes.`);
-    const text = await request.text();
-    if (new TextEncoder().encode(text).length > IMPORT_LIMITS.bytes) return errorResponse(413, 'payload_too_large', `Body must be at most ${IMPORT_LIMITS.bytes} bytes.`);
+    const text = await readCappedText(request, IMPORT_LIMITS.bytes);
+    if (text instanceof Response) return text;
 
     let payloads: { declarationRef: string; payload: unknown }[];
     if (type.includes('csv')) {

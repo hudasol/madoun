@@ -5,7 +5,7 @@ import { ms, type ExceptionKind } from '@/engine';
 const KINDS: readonly ExceptionKind[] = ['idle-review', 'missing-evidence', 'evidence-expiring', 'authority-conflict', 'unowned-handoff'];
 
 export async function GET(request: Request) {
-  return handle(request, () => {
+  return handle(request, ({ caller }) => {
     const sp = new URL(request.url).searchParams;
     const paging = parsePaging(sp);
     if (paging instanceof Response) return paging;
@@ -23,6 +23,8 @@ export async function GET(request: Request) {
     }
     const rows = [...getWorld().exceptions]
       .sort((a, b) => ms(a.openedAt) - ms(b.openedAt) || (a.id < b.id ? -1 : 1))
+      // An authority key sees the exceptions of its own authority only; other roles with the scope see all.
+      .filter((e) => caller.role !== 'authority' || e.authorityId === caller.authority)
       .filter((e) => !kind || e.kind === kind)
       .filter((e) => !authorityId || e.authorityId === authorityId)
       .filter((e) => !shipmentId || e.shipmentId === shipmentId)

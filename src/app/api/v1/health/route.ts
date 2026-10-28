@@ -17,7 +17,7 @@ export async function GET(request: Request) {
       auth: {
         mode,
         ...(mode === 'off' ? { warning: 'Authentication is off. This is the public demo, which serves synthetic data only. Do not expose real data in this mode.' } : {}),
-        ...(problems ? { problems } : {}),
+        ...(problems ? { problems: caller.scopes.has('ops:read') ? problems : ['The key configuration has problems. A key with ops:read can see them.'] } : {}),
       },
     };
     if (caller.scopes.has('ops:read')) {

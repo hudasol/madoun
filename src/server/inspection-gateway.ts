@@ -16,6 +16,7 @@ import { MemoryEventStore, openStore, type EventStore } from './store';
  * repository does not provide (docs/limitations.md).
  */
 const KEY = Symbol.for('madoun.api.inspection-gateway');
+const WORLD = Symbol.for('madoun.api.inspection-gateway.world');
 type Holder = { [KEY]?: EventStore };
 
 export function eventStore(): EventStore {
@@ -32,7 +33,23 @@ export function resetGatewayStore(next: EventStore = new MemoryEventStore()): vo
 
 /** The synthetic world at the snapshot time with every accepted gateway event applied. */
 export function gatewayWorld(): World {
-  return replay(eventStore().read().map((r) => r.event), getWorld().world);
+  // Replaying the whole log is linear in its length, so the result is kept until the store changes.
+  const store = eventStore();
+  const version = store.version();
+  const h = globalThis as unknown as { [WORLD]?: { store: EventStore; version: number; world: World } };
+  const hit = h[WORLD];
+  if (hit && hit.store === store && hit.version === version) return hit.world;
+  const world = replay(store.read().map((r) => r.event), getWorld().world);
+  h[WORLD] = { store, version, world };
+  return world;
+}
+
+/** Whether results are kept beyond this process, for the response bodies that say so. */
+export function storeInfo(): { persisted: boolean; storage: string } {
+  const kind = eventStore().kind;
+  return kind === 'memory'
+    ? { persisted: false, storage: 'in memory; lost on restart' }
+    : { persisted: true, storage: `${kind} event store` };
 }
 
 const laneOf = (f: ShipmentFile) => f.override?.lane ?? f.assessment?.lane;
@@ -61,7 +78,7 @@ export function listTasks(world: World, now: string, status: 'open' | 'completed
 
 export type SubmitOutcome =
   | { ok: true; result: InspectionResult; awaitingOfficerConfirmation: boolean; world: World }
-  | { ok: false; problems: string[] };
+  | { ok: false; problems: string[]; conflict?: true };
 
 const CONFLICT = 'Another result was recorded at the same time. Read the task again and retry.';
 
@@ -86,6 +103,6 @@ export function submitResult(task: InspectionTask, result: InspectionResult): Su
     w = replay([e], w);
   }
   const stored = store.append(events, { expectedVersion: version, idempotencyKey: `result:${task.id}` });
-  if (!stored.ok) return { ok: false, problems: [CONFLICT] };
+  if (!stored.ok) return { ok: false, problems: [CONFLICT], conflict: true };
   return { ok: true, result, awaitingOfficerConfirmation: requiresOfficerConfirmation(result), world: w };
 }

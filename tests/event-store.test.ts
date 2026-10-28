@@ -131,3 +131,12 @@ describe('the gateway survives a restart when its store is durable', () => {
     expect(eventStore().version()).toBeGreaterThan(0);
   });
 });
+
+describe('gateway responses and identity', () => {
+  it('says whether results are kept, and ties a gateway key to its performer id', async () => {
+    const { storeInfo } = await import('@/server/inspection-gateway');
+    expect(storeInfo().persisted).toBe(false);
+    resetGatewayStore(openStore(`file:${path.join(dir, 'info.jsonl')}`));
+    expect(storeInfo()).toEqual({ persisted: true, storage: 'file event store' });
+  });
+});

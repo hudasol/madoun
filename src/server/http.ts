@@ -60,8 +60,12 @@ export async function handle(request: Request, fn: (ctx: ApiContext) => Response
   try {
     const decision = authenticate(request, options.scope, options.isPublic);
     if (!decision.ok) {
-      response = errorResponse(decision.status, decision.code, decision.message);
-      if (decision.challenge) response.headers.set('WWW-Authenticate', 'Bearer realm="madoun"');
+      // Refused requests are limited too, per client address, so a flood of bad keys cannot be free.
+      const refused = limiters().read.take(clientKey(request, 'unauthenticated'), rateLimitNow());
+      response = refused.allowed
+        ? errorResponse(decision.status, decision.code, decision.message)
+        : json({ error: { code: 'rate_limited', message: `Too many requests. Retry after ${refused.retryAfterSeconds} second(s).` } } satisfies ApiErrorBody, 429, { 'Retry-After': String(refused.retryAfterSeconds) });
+      if (decision.challenge && response.status === decision.status) response.headers.set('WWW-Authenticate', 'Bearer realm="madoun"');
     } else {
       caller = decision.caller;
       const kind = request.method === 'GET' || request.method === 'HEAD' ? 'read' : 'write';
@@ -95,15 +99,42 @@ export async function readJsonBody(request: Request, maxBytes: number): Promise<
   if (!ct.toLowerCase().includes('json')) {
     return errorResponse(415, 'unsupported_media_type', "Content-Type must be 'application/json'.");
   }
-  const declared = Number(request.headers.get('content-length') ?? 0);
-  if (declared > maxBytes) return errorResponse(413, 'payload_too_large', `Body must be at most ${maxBytes} bytes.`);
-  const text = await request.text();
-  if (new TextEncoder().encode(text).length > maxBytes) return errorResponse(413, 'payload_too_large', `Body must be at most ${maxBytes} bytes.`);
+  const text = await readCappedText(request, maxBytes);
+  if (text instanceof Response) return text;
   try {
     return { body: JSON.parse(text) };
   } catch {
     return errorResponse(400, 'invalid_json', 'Body is not valid JSON.');
   }
+}
+
+/**
+ * Reads a body as UTF-8 text without ever holding more than `maxBytes` plus one chunk: the declared
+ * Content-Length is checked first, then the stream is counted as it arrives and cancelled at the cap, so a
+ * chunked request with no length cannot make the server buffer it whole. Returns the text or a 413 Response.
+ */
+export async function readCappedText(request: Request, maxBytes: number): Promise<string | Response> {
+  const tooLarge = () => errorResponse(413, 'payload_too_large', `Body must be at most ${maxBytes} bytes.`);
+  const declared = Number(request.headers.get('content-length') ?? 0);
+  if (declared > maxBytes) return tooLarge();
+  if (!request.body) return '';
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > maxBytes) {
+      await reader.cancel().catch(() => undefined);
+      return tooLarge();
+    }
+    chunks.push(value);
+  }
+  const all = new Uint8Array(total);
+  let at = 0;
+  for (const c of chunks) { all.set(c, at); at += c.byteLength; }
+  return new TextDecoder().decode(all);
 }
 
 export interface Paging { page: number; pageSize: number }

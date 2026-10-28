@@ -1,4 +1,4 @@
-import { getWorld } from '@/server/world';
+import { gatewayWorld } from '@/server/inspection-gateway';
 import { canSeeReceipt } from '@/server/auth';
 import { handle, json, paginate, parseEnum, parsePaging } from '@/server/http';
 import type { EvidenceType } from '@/engine';
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     const sharedWith = sp.get('sharedWith') || undefined;
 
     // Ledger order (the order the hash chain was written) is already stable.
-    const rows = getWorld().world.receipts
+    const rows = gatewayWorld().receipts
       .filter((r) => canSeeReceipt(caller, r))
       .filter((r) => !type || r.type === type)
       .filter((r) => !status || r.status === status)
