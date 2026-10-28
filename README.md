@@ -66,7 +66,7 @@ curl -H "Authorization: Bearer $KEY" http://localhost:3000/api/v1/kpis
 | `MADOUN_LOG` | `json` or `off`. One JSON line per request, with no bodies, queries or keys. On by default in production. |
 | `MADOUN_LEDGER_KEY_FILE` | Development signing key, see below. |
 
-Roles are authority, auditor, operator, gateway and ops, each with a fixed set of scopes. Receipts follow their sharing policy: an authority key sees only receipts it issued or that were shared with it. Every response carries `X-Request-Id`, and `GET /api/v1/metrics` serves Prometheus text per process. Details: [docs/integration.md](docs/integration.md), [docs/import.md](docs/import.md), [docs/threat-model.md](docs/threat-model.md).
+Roles are authority, auditor, operator, gateway and ops, each with a fixed set of scopes. Receipts follow their sharing policy: an authority key sees only receipts it issued or that were shared with it, sees evidence checks on a shipment only where it may see the receipt, and sees only its own authority's exceptions. A gateway key may report results only under its own id. Any `MADOUN_AUTH` value other than `off` or `keys` is refused rather than treated as off. Every response carries `X-Request-Id`, and `GET /api/v1/metrics` serves Prometheus text per process. Details: [docs/integration.md](docs/integration.md), [docs/import.md](docs/import.md), [docs/threat-model.md](docs/threat-model.md).
 
 ## How it is built
 
