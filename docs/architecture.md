@@ -36,7 +36,7 @@ Madoun is an **event-sourced, deterministic engine** in pure TypeScript (`src/en
 | `simulate.ts`, `metrics.ts` | Full-process simulation and KPIs (WCO time-release-study definitions) |
 
 ## Server layer (`src/server`) and gateway
-Mock API helpers: the synthetic world built once per process, request validation, the auth seam, the per instance rate limiter, the in-memory inspection gateway store, the ledger checkpoint and the optional development keystore. Everything held there is lost on restart. `gateway/robot.ts` is an external reference gateway that uses only the HTTP contract; `gateway/ros2/msg` holds ROS 2 message definitions. The architecture and evidence flow for v1.5.0 are drawn in [edge-architecture.md](edge-architecture.md).
+Mock API helpers: the synthetic world built once per process, request validation, bearer key authentication with scopes, the per instance rate limiter, the request log and metrics, the event store (memory, file or SQLite) behind the inspection gateway, the ledger checkpoint and the optional development keystore. Everything held there is lost on restart. `gateway/robot.ts` is an external reference gateway that uses only the HTTP contract; `gateway/ros2/msg` holds ROS 2 message definitions. The architecture and evidence flow for v1.5.0 are drawn in [edge-architecture.md](edge-architecture.md).
 
 ## UI
 Client-side store (`src/lib/store.tsx`) builds the synthetic world once, exposes a scrub-able "now", and overlays officer actions as extra events. Pages: control tower, shipments, shipment file, exceptions, evidence, learning, inspection, simulator ("Today vs Madoun"), method. English/Arabic with RTL, light/dark.

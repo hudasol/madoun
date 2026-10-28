@@ -1,10 +1,10 @@
 # Integration: how Madoun would sit beside ATLP / MAMAR
 
-> **Everything in this document describes a design plus a mock.** The API under `/api/v1` serves a seeded synthetic dataset, persists nothing and has no authentication. We have not seen ATLP or MAMAR interface specifications; where this document names a capability of those systems it is an assumption to be confirmed, not a fact. Nothing here has been tested against, or approved by, any government system.
+> **Everything in this document describes a design plus a mock.** The API under `/api/v1` serves a seeded synthetic dataset, persists nothing except gateway results (when a durable store is configured) and has optional bearer key authentication that is off in the public demo. We have not seen ATLP or MAMAR interface specifications; where this document names a capability of those systems it is an assumption to be confirmed, not a fact. Nothing here has been tested against, or approved by, any government system.
 
 The contract is in [`public/openapi.yaml`](../public/openapi.yaml) (OpenAPI 3.1), with JSON Schemas for the payloads that cross the boundary in [`docs/schemas/`](./schemas/): `assessment-request.schema.json`, `evidence-receipt.schema.json`, `inspection-task.schema.json` and `inspection-result-request.schema.json`.
 
-Since v1.5.0 the mock also has an inspection gateway seam (`GET /inspection-tasks`, `POST /inspection-tasks/{id}/result`, machine performers only, results held in memory in one process) and evidence proofs (`GET /receipts/{id}/proof`, `GET /ledger/checkpoint`), described in [robotics-extension.md](robotics-extension.md) and [decisions.md](decisions.md). Every route sits behind an in-memory, per instance rate limiter.
+Since v1.5.0 the mock also has an inspection gateway seam (`GET /inspection-tasks`, `POST /inspection-tasks/{id}/result`, machine performers only, results held in the event store chosen by `MADOUN_STORE`, memory by default) and evidence proofs (`GET /receipts/{id}/proof`, `GET /ledger/checkpoint`), described in [robotics-extension.md](robotics-extension.md) and [decisions.md](decisions.md). Every route sits behind an in-memory, per instance rate limiter.
 
 ## 1. The adapter pattern
 
@@ -69,11 +69,11 @@ A receipt (`EvidenceReceipt`) says: *this authority verified this kind of eviden
 | Concern | In this mock | A real integration needs |
 |---|---|---|
 | Data | Seeded synthetic world built once per server process | Real filings and receipts; no synthetic fallback in production |
-| Authentication | **None.** `src/server/auth.ts` is a placeholder that allows everything | Mutual TLS between systems, per-client API keys scoped per route, key rotation |
+| Authentication | Optional bearer keys with roles and scopes (`MADOUN_AUTH=keys`, issued with `scripts/new-api-key.mjs`); off in the public demo | Mutual TLS between systems, key rotation, identity from the host organisation |
 | Rate limits | In-memory token bucket per server instance, keyed on a forgeable forwarded address (decisions.md, D9) | Limits at the gateway keyed on authenticated identity |
 | Authorisation | Every caller sees every receipt, ignoring `sharedWith` | Filter all reads by the caller's authority id and the custodian's policy |
 | Transport | Plain HTTP route handlers in a Next.js app | Government network gateway, TLS termination, approved hosting and data residency |
-| Writes | `POST /assessments` computes and discards; `POST /inspection-tasks/{id}/result` keeps results in memory in one process only | Authority-signed receipt submission; officer decisions recorded in the system of record |
+| Writes | `POST /assessments` computes and discards; `POST /inspection-tasks/{id}/result` keeps results in the configured event store (memory, file or SQLite) | Authority-signed receipt submission; officer decisions recorded in the system of record |
 | Idempotency | Not needed (nothing persists), no `Idempotency-Key` handling | `Idempotency-Key` on every write, deduplicated per client; stable correlation on `declarationRef` plus a filing version |
 | Event ingestion | The adapter must call the API; no webhooks or streams | Filing-created / amended / cancelled events, receipt issued / revoked events, at-least-once delivery with replay |
 | Queueing | Synchronous request and response | A queue between adapter and Madoun so ATLP/MAMAR availability does not depend on Madoun, and back-pressure at peak filing times |
@@ -110,3 +110,15 @@ curl -X POST localhost:3000/api/v1/assessments \
 ```
 
 Every response carries `X-Madoun-Synthetic: true` and `Cache-Control: no-store`. Errors always have the shape `{"error":{"code","message","details?"}}`.
+
+## Operating the API
+
+| Setting | Meaning |
+|---|---|
+| `MADOUN_AUTH` | `off` (default) or `keys` |
+| `MADOUN_API_KEYS` or `MADOUN_API_KEYS_FILE` | JSON array of key entries (id, sha256, role, optional authority and scopes); see `scripts/new-api-key.mjs` |
+| `MADOUN_STORE` | `memory` (default), `file:<path>` or `sqlite:<path>` |
+| `MADOUN_LOG` | `json` to log one line per request, `off` to silence it; on by default in production |
+| `MADOUN_LEDGER_KEY_FILE` | development signing key ([key-custody.md](key-custody.md)) |
+
+Every response carries `X-Request-Id`. `GET /api/v1/metrics` (scope `ops:read`) serves Prometheus text per process. `POST /api/v1/declarations/import` assesses a batch from CSV ([import.md](import.md)). Known limits are in [limitations.md](limitations.md).
