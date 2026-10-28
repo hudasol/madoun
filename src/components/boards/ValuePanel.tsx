@@ -59,7 +59,7 @@ export function ValuePanel({ avgHoursSaved }: { avgHoursSaved: number }) {
 
   return (
     <section className="mt-8" aria-labelledby="vp">
-      <h2 id="vp" className="mb-1 text-[1.1rem]">{t('title')} <Modelled>{t('tag')}</Modelled></h2>
+      <h2 id="vp" className="mb-1 text-[1rem]">{t('title')} <Modelled>{t('tag')}</Modelled></h2>
       <p className="max-w-[68ch] text-muted">{t('intro')}</p>
       <div className="panel mt-3 p-4">
         <div className="flex flex-wrap gap-x-6 gap-y-4">

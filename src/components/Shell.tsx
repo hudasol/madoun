@@ -12,29 +12,48 @@ const T = {
   en: {
     tower: 'Control tower', shipments: 'Shipments', exceptions: 'Exceptions', evidence: 'Evidence', learning: 'Learning',
     inspection: 'Inspection', simulator: 'Today vs Madoun', pilot: 'Pilot', method: 'Method',
-    banner: 'Sample data: every shipment is synthetic and every rule is illustrative.',
+    dataset: 'Synthetic dataset', operate: 'Operate', assure: 'Assurance', reference: 'Reference', menu: 'Menu',
     viewing: 'Viewing', now: 'Latest', scrub: 'Move through time', theme: 'Switch theme', lang: 'العربية', reset: 'Reset demo changes',
     skip: 'Skip to content', changes: '{n} demo change(s)', viewAs: 'Viewing as', roleHelp: 'Demo only: shows what each role could do and see. Real access control belongs on the server.',
   },
   ar: {
     tower: 'برج المراقبة', shipments: 'الشحنات', exceptions: 'الاستثناءات', evidence: 'الأدلة', learning: 'التعلّم',
     inspection: 'الفحص', simulator: 'اليوم مقابل مدوّن', pilot: 'التجربة', method: 'المنهجية',
-    banner: 'بيانات تجريبية: كل الشحنات اصطناعية وكل القواعد توضيحية.',
+    dataset: 'بيانات اصطناعية', operate: 'التشغيل', assure: 'الضمان', reference: 'المرجع', menu: 'القائمة',
     viewing: 'العرض عند', now: 'الأحدث', scrub: 'التنقل عبر الزمن', theme: 'تبديل المظهر', lang: 'English', reset: 'إعادة ضبط تغييرات العرض',
     skip: 'انتقل إلى المحتوى', changes: '{n} تغيير(ات) تجريبية', viewAs: 'العرض بصفة', roleHelp: 'للعرض التوضيحي فقط: يبيّن ما يمكن لكل دور فعله ورؤيته. التحكم الفعلي بالصلاحيات مكانه الخادم.',
   },
 };
 
-const NAV: { href: string; key: keyof typeof T.en }[] = [
-  { href: '/', key: 'tower' },
-  { href: '/shipments', key: 'shipments' },
-  { href: '/exceptions', key: 'exceptions' },
-  { href: '/evidence', key: 'evidence' },
-  { href: '/learning', key: 'learning' },
-  { href: '/inspection', key: 'inspection' },
-  { href: '/simulator', key: 'simulator' },
-  { href: '/pilot', key: 'pilot' },
-  { href: '/method', key: 'method' },
+type IconName = 'tower' | 'ship' | 'alert' | 'ledger' | 'scan' | 'trend' | 'compare' | 'flag' | 'doc';
+const ICONS: Record<IconName, ReactNode> = {
+  tower: <><circle cx="8" cy="8" r="6" /><circle cx="8" cy="8" r="2" /></>,
+  ship: <><path d="M2 5.5 8 2.5l6 3v6l-6 3-6-3z" /><path d="M2 5.5l6 3 6-3M8 8.5v6" /></>,
+  alert: <><circle cx="8" cy="8" r="6" /><path d="M8 4.8v3.9M8 11v.2" /></>,
+  ledger: <><rect x="2.5" y="2" width="11" height="12" rx="1" /><path d="M5 5.5h6M5 8h6M5 10.5h3.5" /></>,
+  scan: <><circle cx="7" cy="7" r="4.5" /><path d="m10.5 10.5 3.5 3.5" /></>,
+  trend: <path d="M2 12.5 6 8l2.5 2.5L14 4M10.5 4H14v3.5" />,
+  compare: <><path d="M4 13V6M8 13V3M12 13V8" /></>,
+  flag: <path d="M3.5 14V2.5M3.5 3h8l-1.5 3 1.5 3h-8" />,
+  doc: <><path d="M4 1.5h5.5L12.5 4.5v10h-8.5z" /><path d="M9.5 1.5v3h3" /></>,
+};
+
+const NAV_GROUPS: { label: keyof typeof T.en; items: { href: string; key: keyof typeof T.en; icon: IconName }[] }[] = [
+  { label: 'operate', items: [
+    { href: '/', key: 'tower', icon: 'tower' },
+    { href: '/shipments', key: 'shipments', icon: 'ship' },
+    { href: '/exceptions', key: 'exceptions', icon: 'alert' },
+  ] },
+  { label: 'assure', items: [
+    { href: '/evidence', key: 'evidence', icon: 'ledger' },
+    { href: '/inspection', key: 'inspection', icon: 'scan' },
+    { href: '/learning', key: 'learning', icon: 'trend' },
+  ] },
+  { label: 'reference', items: [
+    { href: '/simulator', key: 'simulator', icon: 'compare' },
+    { href: '/pilot', key: 'pilot', icon: 'flag' },
+    { href: '/method', key: 'method', icon: 'doc' },
+  ] },
 ];
 
 export function Shell({ children }: { children: ReactNode }) {
@@ -73,79 +92,86 @@ export function Shell({ children }: { children: ReactNode }) {
   const steps = s.ready ? Math.max(1, Math.round((Date.parse(s.endAt) - Date.parse(s.startAt)) / STEP_MS)) : 1;
   const idx = s.ready ? Math.round((Date.parse(s.at) - Date.parse(s.startAt)) / STEP_MS) : steps;
 
+  const [open, setOpen] = useState(false);
+
   return (
-    <div className="min-h-screen">
+    <div className="app lg:grid lg:grid-cols-[224px_minmax(0,1fr)]">
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-panel focus:p-3">{t('skip')}</a>
-      <header className="site-header">
-        <div className="mx-auto flex max-w-[1280px] flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2.5">
-          <Link href="/" className="inline-flex items-baseline gap-2">
-            <span className="stamp !py-1 !px-2.5 text-[1.05rem] tracking-tight">Madoun<small className="!text-[0.7rem]">مدوّن</small></span>
-          </Link>
-          <nav aria-label="Main" className="nav-scroll order-3 -mx-4 w-[calc(100%+2rem)] overflow-x-auto px-4 md:order-none md:mx-0 md:w-auto md:flex-1 md:px-0">
-            <ul className="flex gap-1 whitespace-nowrap">
-              {NAV.map((n) => {
-                const active = n.href === '/' ? path === '/' : path.startsWith(n.href);
-                return (
-                  <li key={n.href}>
-                    <Link
-                      href={n.href}
-                      aria-current={active ? 'page' : undefined}
-                      className="nav-link"
-                    >
-                      {t(n.key)}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </nav>
-          <div className="ms-auto flex items-center gap-2">
-            <button type="button" className="btn !py-1.5" onClick={() => setLocale(locale === 'en' ? 'ar' : 'en')} lang={locale === 'en' ? 'ar' : 'en'}>
-              {t('lang')}
-            </button>
-            <button type="button" className="btn !py-1.5" onClick={toggleTheme} aria-label={t('theme')} title={t('theme')}>
-              <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="M8 2a6 6 0 0 0 0 12z" fill="currentColor" /></svg>
-            </button>
-          </div>
-        </div>
-        {s.ready && (
-          <div className="border-t border-line">
-            <div className="mx-auto flex max-w-[1280px] flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2 text-sm">
-              <label htmlFor="scrub" className="text-muted">{t('viewing')}</label>
-              <span className="mono min-w-[9ch] font-medium">{f.dateTime(s.at)}</span>
-              <input
-                id="scrub"
-                type="range"
-                min={0}
-                max={steps}
-                value={Math.min(steps, Math.max(0, idx))}
-                aria-label={t('scrub')}
-                onChange={(e) => s.setAt(new Date(Date.parse(s.startAt) + Number(e.target.value) * STEP_MS).toISOString())}
-                className="scrub min-w-[160px] flex-1"
-                style={{ ["--p" as string]: `${(Math.min(steps, Math.max(0, idx)) / steps) * 100}%` }}
-              />
-              <button type="button" className="btn !py-1" onClick={() => s.setAt(s.endAt)} disabled={s.at === s.endAt}>{t('now')}</button>
-              <label htmlFor="viewas" className="ms-auto text-muted">{t('viewAs')}</label>
-              <select
-                id="viewas"
-                className="!py-1 text-sm"
-                value={s.viewAs}
-                title={t('roleHelp')}
-                onChange={(e) => s.setViewAs(parseViewAs(e.target.value))}
-              >
-                {['customs', ...(s.directory ? Object.values(s.directory.authorities).filter((a) => a.role === 'regulator').map((a) => `reg:${a.id}`) : []), 'auditor', 'operator'].map((v) => (
-                  <option key={v} value={v}>{L.role(v)}</option>
-                ))}
-              </select>
-              {s.overlayCount > 0 && (
-                <button type="button" className="btn !py-1" onClick={s.resetDemo} title={t('reset')}>{t('changes', { n: s.overlayCount })}</button>
-              )}
+      <aside id="rail" className={`rail z-40 flex-col px-3 py-4 lg:flex ${open ? 'fixed inset-y-0 start-0 flex w-[240px]' : 'hidden'}`}>
+        <Link href="/" className="flex items-baseline gap-2 px-2 pb-1 text-white">
+          <span className="text-[1.2rem] font-semibold tracking-tight">Madoun</span>
+          <span className="text-[1.05rem] opacity-70" lang="ar">مدوّن</span>
+        </Link>
+        <nav aria-label="Main" className="flex-1 overflow-y-auto">
+          {NAV_GROUPS.map((g) => (
+            <div key={g.label}>
+              <p className="rail-group">{t(g.label)}</p>
+              <ul className="space-y-px">
+                {g.items.map((n) => {
+                  const active = n.href === '/' ? path === '/' : path.startsWith(n.href);
+                  return (
+                    <li key={n.href}>
+                      <Link href={n.href} aria-current={active ? 'page' : undefined} className="nav-link" onClick={() => setOpen(false)}>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{ICONS[n.icon]}</svg>
+                        {t(n.key)}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </nav>
+        <p className="border-t border-[var(--rail-line)] px-2 pt-3 text-[0.8rem] text-[var(--rail-muted)]">{t('dataset')}</p>
+      </aside>
+      {open && <button type="button" aria-label={t('menu')} className="fixed inset-0 z-30 bg-black/50 lg:hidden" onClick={() => setOpen(false)} />}
+      <div className="min-w-0">
+        <header className="topbar">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2 text-sm lg:px-6">
+            <button type="button" className="btn lg:!hidden" aria-expanded={open} aria-controls="rail" onClick={() => setOpen(!open)}>{t('menu')}</button>
+            {s.ready && (
+              <>
+                <label htmlFor="scrub" className="text-muted">{t('viewing')}</label>
+                <span className="mono min-w-[10ch] font-medium">{f.dateTime(s.at)}</span>
+                <input
+                  id="scrub"
+                  type="range"
+                  min={0}
+                  max={steps}
+                  value={Math.min(steps, Math.max(0, idx))}
+                  aria-label={t('scrub')}
+                  onChange={(e) => s.setAt(new Date(Date.parse(s.startAt) + Number(e.target.value) * STEP_MS).toISOString())}
+                  className="scrub min-w-[140px] flex-1"
+                  style={{ ["--p" as string]: `${(Math.min(steps, Math.max(0, idx)) / steps) * 100}%` }}
+                />
+                <button type="button" className="btn" onClick={() => s.setAt(s.endAt)} disabled={s.at === s.endAt}>{t('now')}</button>
+                <label htmlFor="viewas" className="ms-auto text-muted">{t('viewAs')}</label>
+                <select
+                  id="viewas"
+                  className="!py-1 text-sm"
+                  value={s.viewAs}
+                  title={t('roleHelp')}
+                  onChange={(e) => s.setViewAs(parseViewAs(e.target.value))}
+                >
+                  {['customs', ...(s.directory ? Object.values(s.directory.authorities).filter((a) => a.role === 'regulator').map((a) => `reg:${a.id}`) : []), 'auditor', 'operator'].map((v) => (
+                    <option key={v} value={v}>{L.role(v)}</option>
+                  ))}
+                </select>
+                {s.overlayCount > 0 && (
+                  <button type="button" className="btn" onClick={s.resetDemo} title={t('reset')}>{t('changes', { n: s.overlayCount })}</button>
+                )}
+              </>
+            )}
+            <div className={`flex items-center gap-2 ${s.ready ? '' : 'ms-auto'}`}>
+              <button type="button" className="btn" onClick={() => setLocale(locale === 'en' ? 'ar' : 'en')} lang={locale === 'en' ? 'ar' : 'en'}>{t('lang')}</button>
+              <button type="button" className="btn" onClick={toggleTheme} aria-label={t('theme')} title={t('theme')}>
+                <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="M8 2a6 6 0 0 0 0 12z" fill="currentColor" /></svg>
+              </button>
             </div>
           </div>
-        )}
-      </header>
-      <p className="border-b border-line bg-panel2/60 px-4 py-1.5 text-center text-[0.82rem] text-muted">{t('banner')}</p>
-      <main id="main" className="mx-auto max-w-[1280px] px-4 py-8">{children}</main>
+        </header>
+        <main id="main" className="mx-auto max-w-[1240px] px-4 py-6 lg:px-6">{children}</main>
+      </div>
     </div>
   );
 }

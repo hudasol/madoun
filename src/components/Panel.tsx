@@ -4,8 +4,8 @@ export function Panel({ title, aside, children, className = '' }: { title?: Reac
   return (
     <section className={`panel ${className}`}>
       {(title || aside) && (
-        <header className="flex items-baseline justify-between gap-4 border-b border-line px-4 py-3">
-          {title && <h2 className="text-[1.05rem]">{title}</h2>}
+        <header className="flex items-baseline justify-between gap-4 border-b border-line px-4 py-2.5">
+          {title && <h2 className="text-[0.98rem]">{title}</h2>}
           {aside && <div className="text-muted text-sm">{aside}</div>}
         </header>
       )}
@@ -16,9 +16,9 @@ export function Panel({ title, aside, children, className = '' }: { title?: Reac
 
 export function PageTitle({ title, intro }: { title: ReactNode; intro?: ReactNode }) {
   return (
-    <div className="mb-6 max-w-[68ch]">
-      <h1 className="text-[1.75rem]">{title}</h1>
-      {intro && <p className="text-muted mt-2">{intro}</p>}
+    <div className="mb-5 border-b border-line pb-4">
+      <h1>{title}</h1>
+      {intro && <p className="text-muted mt-1.5 max-w-[72ch]">{intro}</p>}
     </div>
   );
 }

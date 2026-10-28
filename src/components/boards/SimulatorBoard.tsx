@@ -104,7 +104,7 @@ export function SimulatorBoard() {
           </p>
 
           <section className="mt-6" aria-labelledby="kp">
-            <h2 id="kp" className="mb-2 text-[1.1rem]">{t('kpis')} <Modelled>{t('modelled')}</Modelled></h2>
+            <h2 id="kp" className="mb-2 text-[1rem]">{t('kpis')}</h2>
             <div className="panel relative overflow-x-auto">
               <table className="table-clean min-w-[470px]">
                 <caption className="sr-only">{t('kpiCaption')}</caption>
@@ -124,11 +124,11 @@ export function SimulatorBoard() {
           </section>
 
           <section className="mt-8" aria-labelledby="ch">
-            <h2 id="ch" className="text-[1.1rem]">{t('chart')} <Modelled>{t('modelled')}</Modelled></h2>
+            <h2 id="ch" className="text-[1rem]">{t('chart')}</h2>
             <p className="mt-1 max-w-[68ch] text-muted">{t('chartIntro')}</p>
-            <div className="mt-3 flex flex-wrap items-center gap-2" role="group" aria-label={t('laneFilter')}>
+            <div className="seg mt-3" role="group" aria-label={t('laneFilter')}>
               {filters.map((x) => (
-                <button key={x} type="button" className="btn !py-1" aria-pressed={lane === x} style={lane === x ? { borderColor: 'var(--ink)' } : undefined} onClick={() => setLane(x)}>
+                <button key={x} type="button" className="btn" aria-pressed={lane === x} onClick={() => setLane(x)}>
                   {x === 'all' ? t('all') : <LaneBadge lane={x} size="sm" />}
                 </button>
               ))}
@@ -157,7 +157,7 @@ export function SimulatorBoard() {
           </section>
 
           <section className="mt-8" aria-labelledby="bl">
-            <h2 id="bl" className="mb-2 text-[1.1rem]">{t('byLane')} <Modelled>{t('modelled')}</Modelled></h2>
+            <h2 id="bl" className="mb-2 text-[1rem]">{t('byLane')}</h2>
             <div className="panel relative overflow-x-auto">
               <table className="table-clean min-w-[560px]">
                 <caption className="sr-only">{t('laneCaption')}</caption>
@@ -185,7 +185,7 @@ export function SimulatorBoard() {
       )}
 
       <section className="mt-8 max-w-[68ch]" aria-labelledby="as">
-        <h2 id="as" className="text-[1.1rem]">{t('assume')}</h2>
+        <h2 id="as" className="text-[1rem]">{t('assume')}</h2>
         <p className="mt-1 text-muted">{t('assumeIntro')}</p>
         <ul className="mt-3 list-disc space-y-2 ps-5">
           {(['a1', 'a2', 'a3', 'a4', 'a5', 'a6'] as const).map((x) => <li key={x}>{t(x)}</li>)}
