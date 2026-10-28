@@ -1,4 +1,5 @@
 import { gatewayWorld } from '@/server/inspection-gateway';
+import { canSeeReceipt } from '@/server/auth';
 import { handle, json, notFound } from '@/server/http';
 import { currentCheckpoint } from '@/server/ledger';
 import { inclusionProofFor } from '@/engine';
@@ -11,9 +12,12 @@ type Ctx = { params: Promise<{ id: string }> };
  * not from this response.
  */
 export async function GET(request: Request, ctx: Ctx) {
-  return handle(request, async () => {
+  return handle(request, async ({ caller }) => {
     const { id } = await ctx.params;
-    const proof = inclusionProofFor(gatewayWorld().receipts, id, currentCheckpoint());
+    const ledger = gatewayWorld().receipts;
+    const receipt = ledger.find((x) => x.id === id);
+    if (!receipt || !canSeeReceipt(caller, receipt)) return notFound('Receipt', id);
+    const proof = inclusionProofFor(ledger, id, currentCheckpoint());
     return proof ? json(proof) : notFound('Receipt', id);
-  });
+  }, { scope: 'receipts:read' });
 }

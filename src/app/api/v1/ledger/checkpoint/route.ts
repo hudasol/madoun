@@ -27,5 +27,5 @@ export async function GET(request: Request) {
       demoKey: ledgerKey().demoKey,
       ...(consistency ? { consistency } : {}),
     });
-  });
+  }, { scope: 'ledger:read' });
 }

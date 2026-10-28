@@ -1,4 +1,5 @@
 import { getWorld } from '@/server/world';
+import { canSeeReceipt } from '@/server/auth';
 import { handle, json, paginate, parseEnum, parsePaging } from '@/server/http';
 import type { EvidenceType } from '@/engine';
 import { EVIDENCE_TYPES } from '@/server/validate';
@@ -6,7 +7,7 @@ import { EVIDENCE_TYPES } from '@/server/validate';
 const STATUSES = ['verified', 'pending', 'revoked'] as const;
 
 export async function GET(request: Request) {
-  return handle(request, () => {
+  return handle(request, ({ caller }) => {
     const sp = new URL(request.url).searchParams;
     const paging = parsePaging(sp);
     if (paging instanceof Response) return paging;
@@ -19,11 +20,12 @@ export async function GET(request: Request) {
 
     // Ledger order (the order the hash chain was written) is already stable.
     const rows = getWorld().world.receipts
+      .filter((r) => canSeeReceipt(caller, r))
       .filter((r) => !type || r.type === type)
       .filter((r) => !status || r.status === status)
       .filter((r) => !verifiedBy || r.verifiedBy === verifiedBy)
       // "Receipts that authority X may rely on": open-to-all, or X listed by the custodian.
       .filter((r) => !sharedWith || r.sharedWith === 'all' || r.sharedWith.includes(sharedWith));
     return json(paginate(rows, paging));
-  });
+  }, { scope: 'receipts:read' });
 }

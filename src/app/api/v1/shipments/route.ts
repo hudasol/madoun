@@ -49,5 +49,5 @@ export async function GET(request: Request) {
           || c.items.some((i) => i.description.toLowerCase().includes(q) || i.hsCode.startsWith(q))));
 
     return json(paginate(rows, paging));
-  });
+  }, { scope: 'shipments:read' });
 }

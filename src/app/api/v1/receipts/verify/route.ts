@@ -34,5 +34,5 @@ export async function GET(request: Request) {
         demoKeys: true,
       },
     });
-  });
+  }, { scope: 'ledger:read' });
 }
