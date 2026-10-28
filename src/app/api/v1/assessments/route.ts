@@ -34,5 +34,5 @@ export async function POST(request: Request) {
       reviewPlan: plan.reviewPlan,
       assessment: plan.assessment,
     });
-  });
+  }, { scope: 'assessments:write' });
 }

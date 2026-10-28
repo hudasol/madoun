@@ -17,5 +17,5 @@ export async function GET(request: Request) {
     if (status instanceof Response) return status;
     const tasks = listTasks(gatewayWorld(), getWorld().now, status ?? 'open');
     return json({ status: status ?? 'open', persisted: false, ...paginate(tasks, paging) });
-  });
+  }, { scope: 'tasks:read' });
 }

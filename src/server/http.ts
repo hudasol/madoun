@@ -1,7 +1,9 @@
-import { authorize } from './auth';
+import { authenticate, authMode, type Caller, type Scope } from './auth';
+import { logRequest } from './log';
+import { recordRequest } from './metrics';
 import { clientKey, limiters, rateLimitNow } from './rate-limit';
 
-export const API_VERSION = '1.0.0-mock';
+export const API_VERSION = '1.1.0-mock';
 
 export interface ApiErrorBody {
   error: { code: string; message: string; details?: unknown };
@@ -25,25 +27,62 @@ export function errorResponse(status: number, code: string, message: string, det
 
 export const notFound = (what: string, id: string) => errorResponse(404, 'not_found', `${what} '${id}' was not found.`);
 
+export interface ApiContext {
+  caller: Caller;
+  requestId: string;
+}
+
+export interface HandleOptions {
+  /** The scope the route needs. Omit for a route any authenticated key may call. */
+  scope?: Scope;
+  /** Accept a request with no key (the key is still checked when one is sent). */
+  isPublic?: boolean;
+}
+
+const REQUEST_ID = /^[A-Za-z0-9._-]{8,64}$/;
+
+/** Uses the caller's request id when it is well formed, otherwise makes one. */
+export function requestIdOf(request: Request): string {
+  const given = request.headers.get('x-request-id');
+  return given && REQUEST_ID.test(given) ? given : crypto.randomUUID();
+}
+
 /**
- * Runs a handler behind the auth seam and the per instance rate limiter (src/server/rate-limit.ts),
- * with a catch-all that keeps the error shape consistent.
+ * Runs a handler behind authentication, the per instance rate limiter (src/server/rate-limit.ts), a request
+ * id, the request log and the request counters, with a catch-all that keeps the error shape consistent.
  */
-export async function handle(request: Request, fn: () => Response | Promise<Response>): Promise<Response> {
+export async function handle(request: Request, fn: (ctx: ApiContext) => Response | Promise<Response>, options: HandleOptions = {}): Promise<Response> {
+  const started = performance.now();
+  const requestId = requestIdOf(request);
+  const url = new URL(request.url);
+  let caller: Caller | undefined;
+  let response: Response;
   try {
-    const decision = authorize(request);
-    if (!decision.allowed) return errorResponse(401, 'unauthorized', 'Authentication required.');
-    const kind = request.method === 'GET' || request.method === 'HEAD' ? 'read' : 'write';
-    const rate = limiters()[kind].take(clientKey(request, decision.clientId), rateLimitNow());
-    if (!rate.allowed) {
-      const body: ApiErrorBody = { error: { code: 'rate_limited', message: `Too many requests. Retry after ${rate.retryAfterSeconds} second(s).` } };
-      return json(body, 429, { 'Retry-After': String(rate.retryAfterSeconds) });
+    const decision = authenticate(request, options.scope, options.isPublic);
+    if (!decision.ok) {
+      response = errorResponse(decision.status, decision.code, decision.message);
+      if (decision.challenge) response.headers.set('WWW-Authenticate', 'Bearer realm="madoun"');
+    } else {
+      caller = decision.caller;
+      const kind = request.method === 'GET' || request.method === 'HEAD' ? 'read' : 'write';
+      const rate = limiters()[kind].take(clientKey(request, caller.id), rateLimitNow());
+      if (!rate.allowed) {
+        const body: ApiErrorBody = { error: { code: 'rate_limited', message: `Too many requests. Retry after ${rate.retryAfterSeconds} second(s).` } };
+        response = json(body, 429, { 'Retry-After': String(rate.retryAfterSeconds) });
+      } else {
+        response = await fn({ caller, requestId });
+      }
     }
-    return await fn();
   } catch (e) {
-    console.error('[madoun-api]', e);
-    return errorResponse(500, 'internal_error', 'Unexpected server error.');
+    console.error('[madoun-api]', requestId, e);
+    response = errorResponse(500, 'internal_error', 'Unexpected server error.');
   }
+  const ms = performance.now() - started;
+  response.headers.set('X-Request-Id', requestId);
+  response.headers.set('X-Madoun-Auth', authMode());
+  recordRequest(request.method, url.pathname, response.status, ms);
+  logRequest({ requestId, clientId: caller?.id ?? 'none', role: caller?.role ?? 'none', method: request.method, path: url.pathname, status: response.status, ms: Math.round(ms * 10) / 10 });
+  return response;
 }
 
 /**

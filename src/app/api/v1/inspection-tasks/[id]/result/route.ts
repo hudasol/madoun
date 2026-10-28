@@ -48,5 +48,5 @@ export async function POST(request: Request, ctx: Ctx) {
       },
       201,
     );
-  });
+  }, { scope: 'tasks:write' });
 }

@@ -37,5 +37,5 @@ export async function GET(request: Request, ctx: Ctx) {
       exceptions: file.exceptions,
       auditTrail: file.audit,
     });
-  });
+  }, { scope: 'shipments:read' });
 }

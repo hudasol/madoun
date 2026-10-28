@@ -28,5 +28,5 @@ export async function GET(request: Request) {
       .filter((e) => !shipmentId || e.shipmentId === shipmentId)
       .filter((e) => e.escalationLevel >= min);
     return json(paginate(rows, paging));
-  });
+  }, { scope: 'exceptions:read' });
 }
